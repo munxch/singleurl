@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MINO - Single URL Search</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/framer-motion@11.0.8/dist/framer-motion.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      background: linear-gradient(180deg, #0a1628 0%, #0f2847 50%, #1a4a6e 100%);
+      overflow-x: hidden;
+    }
+
+    /* Ocean background effect */
+    .ocean-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background:
+        radial-gradient(ellipse at 50% 100%, rgba(30, 100, 150, 0.4) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 80%, rgba(50, 120, 180, 0.3) 0%, transparent 40%),
+        radial-gradient(ellipse at 20% 70%, rgba(20, 80, 130, 0.3) 0%, transparent 50%),
+        linear-gradient(180deg, #0a1628 0%, #0f2847 40%, #1a5a7e 100%);
+      z-index: 0;
+    }
+
+    /* Animated wave overlay */
+    .wave-overlay {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 40%;
+      background: linear-gradient(180deg, transparent 0%, rgba(30, 100, 150, 0.2) 100%);
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .content {
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Glass effect utilities */
+    .glass-card {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.08) 100%);
+      backdrop-filter: blur(60px) saturate(180%) brightness(1.05);
+      -webkit-backdrop-filter: blur(60px) saturate(180%) brightness(1.05);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 16px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), 0 8px 32px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    }
+
+    .glass-panel {
+      background: linear-gradient(180deg, rgba(0, 20, 40, 0.8) 0%, rgba(0, 15, 30, 0.9) 100%);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+    }
+
+    .text-shadow-lg {
+      text-shadow: 0 4px 12px rgba(0,0,0,0.5), 0 8px 32px rgba(0,0,0,0.3);
+    }
+
+    /* Animations */
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .animate-spin {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .animate-pulse {
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fadeIn {
+      animation: fadeIn 0.3s ease-out forwards;
+    }
+
+    @keyframes bubbleIn {
+      0% { opacity: 0; transform: translateY(8px) scale(0.9); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .animate-bubble {
+      animation: bubbleIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    /* Form styles */
+    input:focus {
+      outline: none;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+    }
+
+    /* Dropdown portal styles */
+    .dropdown-portal {
+      position: fixed;
+      z-index: 99999;
+    }
+  </style>
+</head>
+<body>
+  <div class="ocean-bg"></div>
+  <div class="wave-overlay"></div>
+  <div id="root" class="content"></div>
+  <div id="portal-root"></div>
+
+  <script type="text/babel">
+    const { useState, useRef, useEffect, useCallback } = React;
+
+    // Icons as SVG components
+    const SearchIcon = () => (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="m21 21-4.3-4.3"/>
+      </svg>
+    );
+
+    const PlayIcon = () => (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <polygon points="5 3 19 12 5 21 5 3"/>
+      </svg>
+    );
+
+    const LoaderIcon = ({ className }) => (
+      <svg className={className} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+      </svg>
+    );
+
+    const Settings2Icon = () => (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 7h-9"/>
+        <path d="M14 17H5"/>
+        <circle cx="17" cy="17" r="3"/>
+        <circle cx="7" cy="7" r="3"/>
+      </svg>
+    );
+
+    const ChevronDownIcon = ({ className }) => (
+      <svg className={className} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="m6 9 6 6 6-6"/>
+      </svg>
+    );
+
+    const CheckCircle2Icon = () => (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="m9 12 2 2 4-4"/>
+      </svg>
+    );
+
+    const AlertTriangleIcon = () => (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+        <path d="M12 9v4"/>
+        <path d="M12 17h.01"/>
+      </svg>
+    );
+
+    const CheckCircleIcon = () => (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="m9 12 2 2 4-4"/>
+      </svg>
+    );
+
+    const ClockIcon = () => (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
+      </svg>
+    );
+
+    const SparklesIcon = () => (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+        <path d="M5 3v4"/>
+        <path d="M19 17v4"/>
+        <path d="M3 5h4"/>
+        <path d="M17 19h4"/>
+      </svg>
+    );
+
+    const GlobeIcon = () => (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
+        <path d="M2 12h20"/>
+      </svg>
+    );
+
+    // MINO Logo
+    const MinoLogo = ({ className }) => (
+      <div className={`flex shrink-0 items-center gap-0.5 text-white ${className}`}>
+        <svg className="h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 112 100" fill="currentColor">
+          <path d="M107.547 0.947217H80.3353C77.5137 0.947217 75.5397 2.21878 73.9896 4.61052L60.5959 25.4762C59.6089 27.0263 58.6219 28.1525 56.3634 28.1525C54.1049 28.1525 53.1179 27.0263 52.1309 25.4762L38.5979 4.61052C37.0478 2.21272 35.0739 0.947217 32.2522 0.947217H5.04693C2.22528 0.947217 0.814453 2.35804 0.814453 5.17364V95.4059C0.814453 98.2275 2.22528 99.6383 5.04693 99.6383H42.903C43.9021 83.2171 23.4845 63.9075 33.5601 59.7962C39.4698 57.3863 50.2539 71.5853 54.6922 71.773C55.2614 71.7973 55.2795 71.7851 55.2795 71.7851C55.2795 71.7851 55.2977 71.7973 55.8669 71.773C60.3113 71.5853 71.0953 57.3863 76.999 59.7962C87.0746 63.9075 66.657 83.2171 67.6561 99.6383H107.535C110.356 99.6383 111.767 98.2275 111.767 95.4059V5.17364C111.767 2.35199 110.356 0.941162 107.535 0.941162L107.547 0.947217Z"/>
+        </svg>
+        <svg className="h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 100" fill="currentColor">
+          <path d="M35.3548 0.947388H4.34087C2.00334 0.947388 0.108398 2.84233 0.108398 5.17986V95.406C0.108398 97.7436 2.00334 99.6385 4.34087 99.6385H35.3548C37.6923 99.6385 39.5873 97.7436 39.5873 95.406V5.17986C39.5873 2.84233 37.6923 0.947388 35.3548 0.947388Z"/>
+        </svg>
+        <svg className="h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 95 100" fill="currentColor">
+          <path d="M90.023 0.947217H55.9149C55.2913 6.19694 61.3281 20.3839 56.7747 24.1622C49.545 30.1507 43.054 10.7867 31.8098 0.947217H5.14948C2.32783 0.947217 0.916992 2.35804 0.916992 5.17969V95.4119C0.916992 98.2336 2.32783 99.6444 5.14948 99.6444H38.8579C39.7419 94.6308 33.4023 80.0018 38.0344 76.163C45.3307 70.12 51.8762 89.8958 63.3142 99.6444H90.023C92.8446 99.6444 94.2555 98.2336 94.2555 95.4119V5.17364C94.2555 2.35199 92.8446 0.941162 90.023 0.941162V0.947217Z"/>
+        </svg>
+        <svg className="h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 101 103" fill="currentColor">
+          <path d="M50.6516 0.53772C21.4663 0.53772 0.600586 16.3293 0.600586 51.2971C0.600586 86.265 21.4663 102.057 50.6516 102.057C79.8369 102.057 100.703 86.4043 100.703 51.2971C100.703 16.19 79.8308 0.53772 50.6516 0.53772ZM50.6516 62.5716C45.0143 62.5716 40.7818 59.0476 40.7818 51.1518C40.7818 43.256 45.0143 40.0105 50.6516 40.0105C56.2888 40.0105 60.5213 43.5346 60.5213 51.1518C60.5213 58.7691 56.2888 62.5716 50.6516 62.5716Z"/>
+        </svg>
+      </div>
+    );
+
+    // Browser presets configuration
+    const BROWSER_PRESETS = {
+      BASIC: {
+        label: "Basic",
+        description: "Standard browser session",
+        browser_type: "tetra",
+        proxy_enabled: false,
+      },
+      STEALTH: {
+        label: "Stealth",
+        description: "Browser with anti-detection",
+        browser_type: "tetra-anchor",
+        proxy_enabled: false,
+      },
+      GEO_US: {
+        label: "US Proxy",
+        description: "Browser with US geolocation",
+        browser_type: "tetra",
+        proxy_enabled: true,
+        proxy_country_code: "US",
+      },
+      GEO_EU: {
+        label: "EU Proxy",
+        description: "Browser with EU geolocation",
+        browser_type: "tetra",
+        proxy_enabled: true,
+        proxy_country_code: "DE",
+      },
+    };
+
+    // ThinkingBubble Component
+    function ThinkingBubble({
+      message,
+      highlight,
+      query,
+      isThinking = false,
+      visible,
+      willSucceed = false,
+      suggestedQuery,
+      estimatedTimeSeconds,
+      onApplySuggestion,
+      cursorPosition = 50,
+    }) {
+      if (!visible) return null;
+
+      const formatTimeEstimate = (seconds) => {
+        if (seconds < 60) return `~${seconds}s`;
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        if (remainingSeconds === 0) return `~${minutes}min`;
+        return `~${minutes}min ${remainingSeconds}s`;
+      };
+
+      const tailPosition = Math.max(15, Math.min(85, cursorPosition));
+
+      const getGradient = () => {
+        if (isThinking) return "linear-gradient(135deg, rgba(99, 102, 241, 0.95) 0%, rgba(139, 92, 246, 0.95) 100%)";
+        if (willSucceed) return "linear-gradient(135deg, rgba(34, 197, 94, 0.95) 0%, rgba(22, 163, 74, 0.95) 100%)";
+        return "linear-gradient(135deg, rgba(245, 158, 11, 0.95) 0%, rgba(234, 88, 12, 0.95) 100%)";
+      };
+
+      const getShadow = () => {
+        if (isThinking) return "0 8px 32px rgba(99, 102, 241, 0.4), 0 0 0 1px rgba(255,255,255,0.1) inset";
+        if (willSucceed) return "0 8px 32px rgba(34, 197, 94, 0.4), 0 0 0 1px rgba(255,255,255,0.1) inset";
+        return "0 8px 32px rgba(245, 158, 11, 0.4), 0 0 0 1px rgba(255,255,255,0.1) inset";
+      };
+
+      const getTailColor = () => {
+        if (isThinking) return "rgba(139, 92, 246, 0.95)";
+        if (willSucceed) return "rgba(22, 163, 74, 0.95)";
+        return "rgba(234, 88, 12, 0.95)";
+      };
+
+      const renderHighlightedText = () => {
+        if (!query || !highlight) return null;
+        const index = query.toLowerCase().indexOf(highlight.toLowerCase());
+        if (index === -1) return null;
+        const before = query.slice(0, index);
+        const matched = query.slice(index, index + highlight.length);
+        const after = query.slice(index + highlight.length);
+
+        return (
+          <div className="mt-2 px-3 py-2 rounded-lg bg-black/30 text-xs font-mono space-y-1.5">
+            <div>
+              <span className="text-white/50">{before}</span>
+              <span className="text-amber-300 bg-amber-500/20 px-1 rounded">{matched}</span>
+              <span className="text-white/50">{after}</span>
+            </div>
+            {suggestedQuery && (
+              <div className="border-t border-white/10 pt-1.5">
+                <span className="text-white/40">→ </span>
+                <span className="text-amber-200 bg-amber-500/15 px-1 rounded">{suggestedQuery}</span>
+              </div>
+            )}
+          </div>
+        );
+      };
+
+      return (
+        <div
+          className="absolute z-50 animate-fadeIn"
+          style={{
+            left: "50%",
+            transform: "translateX(-50%)",
+            bottom: "100%",
+            marginBottom: "12px",
+          }}
+        >
+          <div className="relative">
+            {/* Small tail puff */}
+            <div
+              className="absolute rounded-full animate-bubble"
+              style={{
+                width: 8,
+                height: 8,
+                background: getTailColor(),
+                left: `${tailPosition}%`,
+                bottom: -20,
+                marginLeft: -4,
+                boxShadow: `0 2px 6px ${getTailColor()}`,
+              }}
+            />
+
+            {/* Main bubble */}
+            <div
+              className={`relative rounded-2xl animate-bubble ${isThinking ? "px-3 py-3" : "px-4 py-3 min-w-[280px] max-w-[400px]"}`}
+              style={{
+                background: getGradient(),
+                boxShadow: getShadow(),
+                backdropFilter: "blur(12px)",
+                animationDelay: "0.08s",
+              }}
+            >
+              <div className="flex items-center justify-center gap-3">
+                {isThinking ? (
+                  <LoaderIcon className="w-5 h-5 text-white animate-spin" />
+                ) : (
+                  <>
+                    <div className="flex-shrink-0">
+                      {willSucceed ? <CheckCircleIcon /> : <AlertTriangleIcon />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm font-medium leading-relaxed">{message}</p>
+                      {willSucceed && estimatedTimeSeconds && (
+                        <div className="flex items-center gap-1.5 mt-1.5 text-white/80 text-xs">
+                          <ClockIcon />
+                          <span>Est. {formatTimeEstimate(estimatedTimeSeconds)}</span>
+                        </div>
+                      )}
+                      {renderHighlightedText()}
+                      {onApplySuggestion && suggestedQuery && (
+                        <button
+                          onClick={onApplySuggestion}
+                          className="mt-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-medium transition-colors"
+                        >
+                          <SparklesIcon />
+                          Apply suggestion
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Bubble connector */}
+              <div
+                className="absolute -bottom-2 w-3 h-3 rounded-full"
+                style={{
+                  left: `${tailPosition}%`,
+                  marginLeft: -6,
+                  background: getTailColor(),
+                  boxShadow: `0 2px 4px ${getTailColor()}`,
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // SearchInput Component
+    function SearchInput({
+      query,
+      onQueryChange,
+      onSubmit,
+      isRunning,
+      queryFeedback,
+      isAnalyzingQuery,
+      onApplySuggestion,
+      selectedPreset,
+      onPresetChange,
+    }) {
+      const [isConfigOpen, setIsConfigOpen] = useState(false);
+      const [dropdownPosition, setDropdownPosition] = useState(null);
+      const buttonRef = useRef(null);
+      const currentConfig = BROWSER_PRESETS[selectedPreset];
+
+      useEffect(() => {
+        if (isConfigOpen && buttonRef.current) {
+          const rect = buttonRef.current.getBoundingClientRect();
+          setDropdownPosition({
+            top: rect.bottom + 8,
+            right: window.innerWidth - rect.right,
+          });
+        }
+      }, [isConfigOpen]);
+
+      // Close dropdown when clicking outside
+      useEffect(() => {
+        const handleClickOutside = (e) => {
+          if (isConfigOpen && buttonRef.current && !buttonRef.current.contains(e.target)) {
+            setIsConfigOpen(false);
+          }
+        };
+        document.addEventListener('click', handleClickOutside);
+        return () => document.removeEventListener('click', handleClickOutside);
+      }, [isConfigOpen]);
+
+      const handleSelectPreset = (preset) => {
+        onPresetChange(preset);
+        setIsConfigOpen(false);
+      };
+
+      const handleKeyDown = (e) => {
+        if (e.key === "Enter") {
+          onSubmit();
+        }
+      };
+
+      return (
+        <div className="glass-card p-1.5 max-w-3xl mx-auto relative">
+          {/* visionOS specular highlight */}
+          <div
+            className="absolute inset-x-0 top-0 h-px rounded-t-2xl pointer-events-none"
+            style={{
+              background: "linear-gradient(90deg, transparent 10%, rgba(255, 255, 255, 0.4) 50%, transparent 90%)",
+            }}
+          />
+
+          {/* AI Feedback Bubble */}
+          <ThinkingBubble
+            message={
+              queryFeedback?.willSucceed
+                ? queryFeedback?.extractionSummary || "Looking good! Ready to run."
+                : queryFeedback?.advice || ""
+            }
+            highlight={queryFeedback?.highlight}
+            query={query}
+            isThinking={isAnalyzingQuery}
+            visible={isAnalyzingQuery || (queryFeedback !== null && query.length >= 10)}
+            willSucceed={queryFeedback?.willSucceed}
+            suggestedQuery={queryFeedback?.suggestedQuery}
+            estimatedTimeSeconds={queryFeedback?.estimatedTimeSeconds}
+            onApplySuggestion={onApplySuggestion}
+            cursorPosition={Math.min(10 + query.length * 1.2, 70)}
+          />
+
+          <div className="flex items-center gap-3">
+            <div className="text-white/70 ml-4">
+              <SearchIcon />
+            </div>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => onQueryChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="e.g., Find hotels in Melbourne under $200/night..."
+              className="flex-1 bg-transparent border-none text-white text-lg placeholder-white/60 focus:outline-none py-3"
+              disabled={isRunning}
+            />
+
+            {/* Browser Config Dropdown */}
+            <div className="relative">
+              <button
+                ref={buttonRef}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsConfigOpen(!isConfigOpen);
+                }}
+                disabled={isRunning}
+                className="flex items-center gap-1.5 px-3 py-2 text-sm text-white/60 hover:text-white/80 transition-colors disabled:opacity-50 rounded-lg hover:bg-white/5"
+              >
+                <Settings2Icon />
+                <span className="hidden sm:inline">{currentConfig.label}</span>
+                <ChevronDownIcon className={`transition-transform ${isConfigOpen ? "rotate-180" : ""}`} />
+              </button>
+
+              {isConfigOpen && dropdownPosition && ReactDOM.createPortal(
+                <div
+                  className="dropdown-portal w-64 animate-fadeIn"
+                  style={{
+                    top: dropdownPosition.top,
+                    right: dropdownPosition.right,
+                  }}
+                >
+                  <div
+                    className="rounded-xl overflow-hidden"
+                    style={{
+                      background: "rgba(20, 20, 30, 0.95)",
+                      backdropFilter: "blur(20px)",
+                      border: "1px solid rgba(255, 255, 255, 0.15)",
+                      boxShadow: "0 10px 40px rgba(0, 0, 0, 0.4)",
+                    }}
+                  >
+                    {Object.entries(BROWSER_PRESETS).map(([key, preset]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => handleSelectPreset(key)}
+                        className={`w-full px-4 py-3 text-left transition-colors flex items-center justify-between ${
+                          selectedPreset === key
+                            ? "bg-blue-500/20 text-blue-300"
+                            : "hover:bg-white/5 text-white/80"
+                        }`}
+                      >
+                        <div>
+                          <div className="font-medium text-sm">{preset.label}</div>
+                          <div className="text-xs text-white/50">{preset.description}</div>
+                        </div>
+                        {selectedPreset === key && (
+                          <div className="text-blue-400 flex-shrink-0">
+                            <CheckCircle2Icon />
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>,
+                document.getElementById('portal-root')
+              )}
+            </div>
+
+            <button
+              onClick={onSubmit}
+              disabled={!query.trim() || isRunning}
+              className={`px-6 py-3 mr-1 font-semibold rounded-xl transition-all flex items-center gap-2 ${
+                query.trim() && !isRunning
+                  ? "bg-blue-500 hover:bg-blue-600 text-white transform hover:scale-[1.02] active:scale-[0.98]"
+                  : "bg-white/10 text-white/60 cursor-not-allowed"
+              }`}
+            >
+              {isRunning ? (
+                <>
+                  <LoaderIcon className="animate-spin" />
+                  Running...
+                </>
+              ) : (
+                <>
+                  <PlayIcon />
+                  Run
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Example queries
+    const EXAMPLE_QUERIES = [
+      "Find USPS shipping cost for a 5lb box from SF to Boston",
+      "What is the price of AirPods Pro on apple.com?",
+      "Find the hours of Tartine Bakery in San Francisco",
+    ];
+
+    // Mock query feedback simulation
+    function useMockQueryFeedback(query, enabled) {
+      const [feedback, setFeedback] = useState(null);
+      const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+      useEffect(() => {
+        if (!enabled || query.length < 10) {
+          setFeedback(null);
+          return;
+        }
+
+        setIsAnalyzing(true);
+        const timer = setTimeout(() => {
+          setIsAnalyzing(false);
+
+          // Simulate feedback based on query content
+          if (query.toLowerCase().includes('hotel') || query.toLowerCase().includes('find')) {
+            setFeedback({
+              willSucceed: true,
+              extractionSummary: "I'll search for hotels matching your criteria and extract pricing information.",
+              estimatedTimeSeconds: 15,
+            });
+          } else if (query.toLowerCase().includes('price') || query.toLowerCase().includes('cost')) {
+            setFeedback({
+              willSucceed: true,
+              extractionSummary: "I'll navigate to the site and extract the pricing details.",
+              estimatedTimeSeconds: 12,
+            });
+          } else if (query.length < 20) {
+            setFeedback({
+              willSucceed: false,
+              advice: "Try adding more specific details to your query for better results.",
+              highlight: query,
+              suggestedQuery: query + " with reviews and ratings",
+            });
+          } else {
+            setFeedback({
+              willSucceed: true,
+              extractionSummary: "Query looks good! I'll extract the requested information.",
+              estimatedTimeSeconds: 20,
+            });
+          }
+        }, 800);
+
+        return () => clearTimeout(timer);
+      }, [query, enabled]);
+
+      const clearFeedback = useCallback(() => setFeedback(null), []);
+
+      return { feedback, isAnalyzing, clearFeedback };
+    }
+
+    // Main App Component
+    function App() {
+      const [query, setQuery] = useState("");
+      const [browserPreset, setBrowserPreset] = useState("BASIC");
+      const [isRunning, setIsRunning] = useState(false);
+      const [isComplete, setIsComplete] = useState(false);
+
+      const { feedback, isAnalyzing, clearFeedback } = useMockQueryFeedback(
+        query,
+        !isRunning && !isComplete
+      );
+
+      const handleQueryChange = useCallback((newQuery) => {
+        setQuery(newQuery);
+      }, []);
+
+      const handleApplySuggestion = useCallback(() => {
+        if (feedback?.suggestedQuery) {
+          setQuery(feedback.suggestedQuery);
+          clearFeedback();
+        }
+      }, [feedback, clearFeedback]);
+
+      const handleRunQuery = useCallback(async () => {
+        if (!query.trim() || isRunning) return;
+        clearFeedback();
+        setIsRunning(true);
+
+        // Simulate a query execution
+        setTimeout(() => {
+          setIsRunning(false);
+          setIsComplete(true);
+        }, 3000);
+      }, [query, isRunning, clearFeedback]);
+
+      const handleTryAnother = useCallback(() => {
+        setQuery("");
+        setIsComplete(false);
+      }, []);
+
+      return (
+        <div className="flex flex-col items-center min-h-screen px-6 py-12">
+          {/* MINO Header Logo */}
+          <div
+            className="fixed top-6 left-1/2 -translate-x-1/2 z-50 animate-fadeIn"
+            style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.4))" }}
+          >
+            <MinoLogo className="h-5" />
+          </div>
+
+          <div className="w-full max-w-6xl mt-16 animate-fadeIn" style={{ animationDelay: "0.1s" }}>
+            {/* Header */}
+            <div className="mb-6">
+              <h2 className="text-3xl font-bold text-white mb-2 text-center text-shadow-lg">
+                Try a Search
+              </h2>
+
+              {!isComplete && (
+                <div className="animate-fadeIn" style={{ animationDelay: "0.2s" }}>
+                  <p className="text-white/70 text-center mb-6">
+                    See Mino in action - enter a search query below
+                  </p>
+
+                  {/* Search Bar */}
+                  <SearchInput
+                    query={query}
+                    onQueryChange={handleQueryChange}
+                    onSubmit={handleRunQuery}
+                    isRunning={isRunning}
+                    queryFeedback={feedback}
+                    isAnalyzingQuery={isAnalyzing}
+                    onApplySuggestion={handleApplySuggestion}
+                    selectedPreset={browserPreset}
+                    onPresetChange={setBrowserPreset}
+                  />
+
+                  {/* Quick Examples */}
+                  <div className="flex flex-wrap justify-center gap-2 mt-4">
+                    {EXAMPLE_QUERIES.map((example) => (
+                      <button
+                        key={example}
+                        onClick={() => handleQueryChange(example)}
+                        disabled={isRunning}
+                        className="px-3 py-1.5 text-white/90 text-sm rounded-lg border border-white/20 transition-all disabled:opacity-50 hover:border-white/30 hover:text-white"
+                        style={{
+                          background: "rgba(255, 255, 255, 0.15)",
+                          backdropFilter: "blur(12px)",
+                          WebkitBackdropFilter: "blur(12px)",
+                          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1)",
+                        }}
+                      >
+                        {example}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Panels Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 h-auto lg:h-[500px]">
+              {/* Left Panel: Browser View (60%) */}
+              <div className="lg:col-span-3 glass-panel p-4 h-[350px] lg:h-full">
+                <div className="flex items-center gap-2 mb-3 text-white/70 text-sm font-medium">
+                  <GlobeIcon />
+                  <span>Browser Session</span>
+                </div>
+                <div className="flex items-center justify-center h-[calc(100%-40px)] text-white/40">
+                  {isRunning ? (
+                    <div className="text-center">
+                      <LoaderIcon className="w-12 h-12 animate-spin mx-auto mb-3 text-blue-400" />
+                      <p>Running query...</p>
+                    </div>
+                  ) : isComplete ? (
+                    <div className="text-center">
+                      <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-3">
+                        <CheckCircleIcon className="text-green-400" />
+                      </div>
+                      <p className="text-green-400 mb-4">Query completed!</p>
+                      <button
+                        onClick={handleTryAnother}
+                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                      >
+                        Try another query
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <div className="w-16 h-16 rounded-full border-2 border-white/20 flex items-center justify-center mx-auto mb-3">
+                        <GlobeIcon />
+                      </div>
+                      <p>Enter a query to start</p>
+                      <p className="text-sm text-white/30 mt-1">Browser view will appear here</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Panel: Events (40%) */}
+              <div className="lg:col-span-2 glass-panel p-4 h-[350px] lg:h-full">
+                <div className="flex items-center gap-2 mb-3 text-white/70 text-sm font-medium">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                  </svg>
+                  <span>Session Events</span>
+                </div>
+                <div className="flex items-center justify-center h-[calc(100%-40px)] text-white/40">
+                  {isRunning ? (
+                    <div className="w-full space-y-2 px-2">
+                      <div className="flex items-center gap-2 text-blue-400 text-sm animate-pulse">
+                        <div className="w-2 h-2 rounded-full bg-blue-400"/>
+                        <span>Navigating to target...</span>
+                      </div>
+                    </div>
+                  ) : isComplete ? (
+                    <div className="w-full space-y-2 px-2 text-sm">
+                      <div className="flex items-center gap-2 text-green-400">
+                        <div className="w-2 h-2 rounded-full bg-green-400"/>
+                        <span>Navigation complete</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-green-400">
+                        <div className="w-2 h-2 rounded-full bg-green-400"/>
+                        <span>Data extracted</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-green-400">
+                        <div className="w-2 h-2 rounded-full bg-green-400"/>
+                        <span>Session complete</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <svg className="w-8 h-8 mx-auto mb-2 text-white/30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                      </svg>
+                      <p className="text-sm">Events will stream here</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Render
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
