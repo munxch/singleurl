@@ -2,13 +2,14 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { runPlaygroundQuery, getSessionStatus } from '@/lib/api';
-import { SessionStatus, SessionEvent } from '@/types';
+import { SessionStatus, SessionEvent, SessionLogEvent, SessionOutput } from '@/types';
 
 interface UseSessionReturn {
   sessionId: string | null;
   streamingUrl: string | null;
   sessionStatus: SessionStatus | null;
-  sessionOutput: unknown;
+  sessionOutput: SessionOutput | null;
+  sessionLog: SessionLogEvent[];
   events: SessionEvent[];
   error: string | null;
   isRunning: boolean;
@@ -21,7 +22,8 @@ export function useSession(): UseSessionReturn {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [streamingUrl, setStreamingUrl] = useState<string | null>(null);
   const [sessionStatus, setSessionStatus] = useState<SessionStatus | null>(null);
-  const [sessionOutput, setSessionOutput] = useState<unknown>(null);
+  const [sessionOutput, setSessionOutput] = useState<SessionOutput | null>(null);
+  const [sessionLog, setSessionLog] = useState<SessionLogEvent[]>([]);
   const [events, setEvents] = useState<SessionEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
@@ -42,6 +44,11 @@ export function useSession(): UseSessionReturn {
       try {
         const session = await getSessionStatus(sid);
         setSessionStatus(session.status);
+
+        // Update session log
+        if (session.session_log && session.session_log.length > 0) {
+          setSessionLog(session.session_log);
+        }
 
         // Update streaming URL if available
         if (session.streaming_url && !streamingUrl) {
@@ -97,6 +104,7 @@ export function useSession(): UseSessionReturn {
     setStreamingUrl(null);
     setSessionStatus(null);
     setSessionOutput(null);
+    setSessionLog([]);
     setIsComplete(false);
 
     addEvent({ type: 'status', message: 'Starting session...', timestamp: Date.now() });
@@ -140,6 +148,7 @@ export function useSession(): UseSessionReturn {
     setStreamingUrl(null);
     setSessionStatus(null);
     setSessionOutput(null);
+    setSessionLog([]);
     setEvents([]);
     setError(null);
     setIsComplete(false);
@@ -154,6 +163,7 @@ export function useSession(): UseSessionReturn {
     streamingUrl,
     sessionStatus,
     sessionOutput,
+    sessionLog,
     events,
     error,
     isRunning,

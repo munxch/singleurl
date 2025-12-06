@@ -1,23 +1,52 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { MinoLogo } from '@/components/icons/MinoLogo';
-import { GlobeIcon, LoaderIcon, CheckCircleIcon, AlertTriangleIcon } from '@/components/icons';
-import { SearchInput, BrowserViewer, SessionEventsPanel } from '@/components/ui';
-import { useQueryFeedback, useSession } from '@/hooks';
-import { EXAMPLE_QUERIES } from '@/lib/constants';
-import { BrowserPresetKey } from '@/types';
+import { GlobeIcon, LoaderIcon, AlertTriangleIcon, ChevronDownIcon } from '@/components/icons';
+import { BrowserViewer, ProgressNarration, ResultsDisplay } from '@/components/ui';
+import { useSession } from '@/hooks';
+
+// Scenario-based examples that feel relevant and personal
+const SCENARIOS = [
+  {
+    category: 'Shopping',
+    icon: '🛒',
+    examples: [
+      'Find the best price for AirPods Pro across major retailers',
+      'Compare prices for a Nintendo Switch OLED',
+    ],
+  },
+  {
+    category: 'Research',
+    icon: '🔍',
+    examples: [
+      'Find USPS shipping cost for a 5lb box from SF to Boston',
+      'What are the hours for Tartine Bakery in San Francisco?',
+    ],
+  },
+  {
+    category: 'Travel',
+    icon: '✈️',
+    examples: [
+      'Find hotels in Tokyo under $200/night for next weekend',
+      'What are the cheapest flights from LAX to NYC in January?',
+    ],
+  },
+];
+
+type ViewState = 'landing' | 'running' | 'results';
 
 export default function Home() {
   const [query, setQuery] = useState('');
-  const [browserPreset, setBrowserPreset] = useState<BrowserPresetKey>('BASIC');
+  const [currentQuery, setCurrentQuery] = useState('');
+  const [showBrowser, setShowBrowser] = useState(false);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [startTime, setStartTime] = useState<number | null>(null);
 
   const {
-    sessionId,
     streamingUrl,
-    sessionStatus,
     sessionOutput,
-    events,
+    sessionLog,
     error,
     isRunning,
     isComplete,
@@ -25,180 +54,232 @@ export default function Home() {
     reset,
   } = useSession();
 
-  const { feedback, isAnalyzing, clearFeedback } = useQueryFeedback(
-    query,
-    !isRunning && !isComplete
-  );
-
-  const handleQueryChange = useCallback((newQuery: string) => {
-    setQuery(newQuery);
-  }, []);
-
-  const handleApplySuggestion = useCallback(() => {
-    if (feedback?.suggestedQuery) {
-      setQuery(feedback.suggestedQuery);
-      clearFeedback();
+  // Track elapsed time during running state
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isRunning && startTime) {
+      interval = setInterval(() => {
+        setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+      }, 1000);
     }
-  }, [feedback, clearFeedback]);
+    return () => clearInterval(interval);
+  }, [isRunning, startTime]);
+
+  // Determine current view state
+  const viewState: ViewState = isComplete ? 'results' : isRunning ? 'running' : 'landing';
 
   const handleRunQuery = useCallback(async () => {
     if (!query.trim() || isRunning) return;
-    clearFeedback();
+    setCurrentQuery(query);
+    setShowBrowser(false);
+    setElapsedTime(0);
+    setStartTime(Date.now());
     await runQuery(query);
-  }, [query, isRunning, clearFeedback, runQuery]);
+  }, [query, isRunning, runQuery]);
 
   const handleTryAnother = useCallback(() => {
     setQuery('');
+    setCurrentQuery('');
+    setShowBrowser(false);
+    setElapsedTime(0);
+    setStartTime(null);
     reset();
   }, [reset]);
 
+  // Format elapsed time
+  const formatTime = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s`;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}m ${secs}s`;
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleRunQuery();
+    }
+  };
+
   return (
-    <div className="flex flex-col items-center min-h-screen px-6 py-12">
-      {/* MINO Header Logo */}
-      <div
-        className="fixed top-6 left-0 right-0 flex justify-center z-50 animate-fadeIn"
-        style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.4))' }}
-      >
-        <MinoLogo />
-      </div>
+    <div className="min-h-screen flex flex-col">
+      {/* Fixed Header */}
+      <header className="fixed top-0 left-0 right-0 z-50 py-4">
+        <div className="flex justify-center">
+          <MinoLogo />
+        </div>
+      </header>
 
-      <div className="w-full max-w-6xl mt-16 animate-fadeIn" style={{ animationDelay: '0.1s' }}>
-        {/* Header */}
-        <div className="mb-6">
-          <h2 className="text-3xl font-bold text-white mb-2 text-center text-shadow-lg">
-            Try a Search
-          </h2>
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col items-center justify-center px-6 py-24">
+        <div className="w-full max-w-3xl">
 
-          {!isComplete && (
-            <div className="animate-fadeIn" style={{ animationDelay: '0.2s' }}>
-              <p className="text-white/70 text-center mb-6">
-                See Mino in action - enter a search query below
-              </p>
+          {/* LANDING STATE */}
+          {viewState === 'landing' && (
+            <div className="animate-fadeIn">
+              {/* Hero Section */}
+              <div className="text-center mb-10">
+                <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 text-shadow-lg">
+                  What do you want to find out?
+                </h1>
+                <p className="text-xl text-white/70">
+                  Tell me what you need. I&apos;ll go find it.
+                </p>
+              </div>
 
-              {/* Search Bar */}
-              <SearchInput
-                query={query}
-                onQueryChange={handleQueryChange}
-                onSubmit={handleRunQuery}
-                isRunning={isRunning}
-                queryFeedback={feedback}
-                isAnalyzingQuery={isAnalyzing}
-                onApplySuggestion={handleApplySuggestion}
-                selectedPreset={browserPreset}
-                onPresetChange={setBrowserPreset}
-              />
+              {/* Input Area */}
+              <div className="glass-card p-2 mb-6">
+                <div className="relative">
+                  <div
+                    className="absolute inset-x-0 top-0 h-px rounded-t-2xl pointer-events-none"
+                    style={{
+                      background: 'linear-gradient(90deg, transparent 10%, rgba(255, 255, 255, 0.4) 50%, transparent 90%)',
+                    }}
+                  />
+                  <div className="flex items-center gap-3">
+                    <div className="text-white/50 ml-4">
+                      <GlobeIcon />
+                    </div>
+                    <input
+                      type="text"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      placeholder="e.g., Find the best price for..."
+                      className="flex-1 bg-transparent border-none text-white text-lg placeholder-white/40 focus:outline-none py-4"
+                      autoFocus
+                    />
+                    <button
+                      onClick={handleRunQuery}
+                      disabled={!query.trim()}
+                      className={`px-8 py-3 mr-1 font-semibold rounded-xl transition-all flex items-center gap-2 ${
+                        query.trim()
+                          ? 'bg-blue-500 hover:bg-blue-600 text-white transform hover:scale-[1.02] active:scale-[0.98]'
+                          : 'bg-white/10 text-white/40 cursor-not-allowed'
+                      }`}
+                    >
+                      Go find it
+                    </button>
+                  </div>
+                </div>
+              </div>
 
-              {/* Quick Examples */}
-              <div className="flex flex-wrap justify-center gap-2 mt-4">
-                {EXAMPLE_QUERIES.map((example) => (
-                  <button
-                    key={example}
-                    onClick={() => handleQueryChange(example)}
-                    disabled={isRunning}
-                    className="px-3 py-1.5 text-white/90 text-sm rounded-lg border border-white/20 transition-all disabled:opacity-50 hover:border-white/30 hover:text-white glass-button"
-                  >
-                    {example}
-                  </button>
-                ))}
+              {/* Example Scenarios */}
+              <div className="space-y-4">
+                <p className="text-sm text-white/50 text-center">Or try one of these:</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {SCENARIOS.map((scenario) => (
+                    <div key={scenario.category} className="space-y-2">
+                      <div className="flex items-center gap-2 text-white/60 text-sm font-medium">
+                        <span>{scenario.icon}</span>
+                        <span>{scenario.category}</span>
+                      </div>
+                      {scenario.examples.map((example) => (
+                        <button
+                          key={example}
+                          onClick={() => setQuery(example)}
+                          className="w-full text-left px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white/80 text-sm transition-all"
+                        >
+                          {example}
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
-        </div>
 
-        {/* Panels Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 h-auto lg:h-[500px]">
-          {/* Left Panel: Browser View (60%) */}
-          <div className="lg:col-span-3 glass-panel p-4 h-[350px] lg:h-full">
-            <div className="flex items-center gap-2 mb-3 text-white/70 text-sm font-medium">
-              <GlobeIcon />
-              <span>Browser Session</span>
-              {sessionId && (
-                <span className="text-xs text-white/40 ml-auto font-mono">
-                  {sessionId.substring(0, 8)}...
-                </span>
-              )}
-            </div>
-            <div className="h-[calc(100%-40px)]">
-              {streamingUrl ? (
-                <BrowserViewer
-                  streamingUrl={streamingUrl}
-                  onStatusChange={(status) => {
-                    if (status === 'connected') {
-                      // Event handled by hook
-                    }
-                  }}
-                />
-              ) : isRunning ? (
-                <div className="flex items-center justify-center h-full text-white/40">
-                  <div className="text-center">
-                    <LoaderIcon className="w-12 h-12 animate-spin mx-auto mb-3 text-blue-400" />
-                    <p>Starting browser session...</p>
-                    <p className="text-sm text-white/30 mt-1">Waiting for stream...</p>
-                  </div>
+          {/* RUNNING STATE */}
+          {viewState === 'running' && (
+            <div className="animate-fadeIn">
+              {/* Header */}
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-blue-500/20 text-blue-400 mb-4">
+                  <LoaderIcon className="w-4 h-4 animate-spin" />
+                  <span className="font-medium">Working on it...</span>
+                  <span className="text-blue-300/70 text-sm">{formatTime(elapsedTime)}</span>
                 </div>
-              ) : isComplete ? (
-                <div className="flex items-center justify-center h-full text-white/40">
-                  <div className="text-center">
-                    <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-3">
-                      <CheckCircleIcon className="text-green-400" />
-                    </div>
-                    <p className="text-green-400 mb-4">Query completed!</p>
-                    <button
-                      onClick={handleTryAnother}
-                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-                    >
-                      Try another query
-                    </button>
-                  </div>
-                </div>
-              ) : error ? (
-                <div className="flex items-center justify-center h-full text-white/40">
-                  <div className="text-center">
-                    <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-3">
-                      <AlertTriangleIcon className="text-red-400" />
-                    </div>
-                    <p className="text-red-400 mb-2">Error</p>
-                    <p className="text-sm text-white/50 mb-4 max-w-xs">{error}</p>
-                    <button
-                      onClick={handleTryAnother}
-                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-                    >
-                      Try again
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-full text-white/40">
-                  <div className="text-center">
-                    <div className="w-16 h-16 rounded-full border-2 border-white/20 flex items-center justify-center mx-auto mb-3">
-                      <GlobeIcon />
-                    </div>
-                    <p>Enter a query to start</p>
-                    <p className="text-sm text-white/30 mt-1">Live browser view will appear here</p>
+                <h2 className="text-2xl font-bold text-white mb-2">
+                  Mino is finding your answer
+                </h2>
+                <p className="text-white/60 max-w-xl mx-auto">
+                  &ldquo;{currentQuery}&rdquo;
+                </p>
+                {elapsedTime > 10 && (
+                  <p className="text-white/40 text-sm mt-2">
+                    Complex queries can take up to a minute
+                  </p>
+                )}
+              </div>
+
+              {/* Progress Narration */}
+              <div className="glass-panel p-6 mb-6">
+                <ProgressNarration sessionLog={sessionLog} isRunning={isRunning} />
+              </div>
+
+              {/* Browser Toggle */}
+              <div className="text-center">
+                <button
+                  onClick={() => setShowBrowser(!showBrowser)}
+                  className="inline-flex items-center gap-2 text-white/50 hover:text-white/70 text-sm transition-colors"
+                >
+                  <span>{showBrowser ? 'Hide' : 'Show'} live browser</span>
+                  <ChevronDownIcon className={`transition-transform ${showBrowser ? 'rotate-180' : ''}`} />
+                </button>
+              </div>
+
+              {/* Collapsible Browser View */}
+              {showBrowser && streamingUrl && (
+                <div className="mt-4 animate-fadeIn">
+                  <div className="glass-panel p-4 h-[400px]">
+                    <BrowserViewer streamingUrl={streamingUrl} />
                   </div>
                 </div>
               )}
-            </div>
-          </div>
 
-          {/* Right Panel: Events (40%) */}
-          <div className="lg:col-span-2 glass-panel p-4 h-[350px] lg:h-full">
-            <div className="flex items-center gap-2 mb-3 text-white/70 text-sm font-medium">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-              </svg>
-              <span>Session Events</span>
+              {/* Error Display */}
+              {error && (
+                <div className="mt-6 p-4 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangleIcon />
+                    <div>
+                      <p className="font-medium">Something went wrong</p>
+                      <p className="text-sm text-red-300/80 mt-1">{error}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleTryAnother}
+                    className="mt-4 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg text-sm transition-colors"
+                  >
+                    Try again
+                  </button>
+                </div>
+              )}
             </div>
-            <div className="h-[calc(100%-40px)]">
-              <SessionEventsPanel
-                events={events}
-                sessionStatus={sessionStatus}
-                sessionOutput={sessionOutput}
+          )}
+
+          {/* RESULTS STATE */}
+          {viewState === 'results' && (
+            <div className="animate-fadeIn">
+              <ResultsDisplay
+                output={sessionOutput}
+                query={currentQuery}
+                onTryAnother={handleTryAnother}
               />
             </div>
-          </div>
+          )}
+
         </div>
-      </div>
+      </main>
+
+      {/* Footer Tagline */}
+      {viewState === 'landing' && (
+        <footer className="py-8 text-center">
+          <p className="text-white/40 text-sm">
+            You ask. Mino goes. Answers come back.
+          </p>
+        </footer>
+      )}
     </div>
   );
 }
