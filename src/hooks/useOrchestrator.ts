@@ -28,7 +28,7 @@ const createInitialState = (): OrchestratorState => ({
   selectedSites: [],
   lanes: [],
   maxConcurrent: 6,
-  staggerDelay: 300,
+  staggerDelay: 1500, // Stagger lane starts for visual effect (1.5s between each)
   nextActions: [],
   progress: {
     total: 0,
@@ -93,8 +93,37 @@ function orchestratorReducer(
         ...state,
         parsedQuery: action.parsed,
         selectedSites: action.parsed.suggestedSites.filter(s => s.selected),
-        status: 'configuring',
+        status: action.needsClarification ? 'clarifying' : 'configuring',
       };
+
+    case 'CLARIFICATION_COMPLETE': {
+      // Save the completed inputs
+      const completedInputs = { ...state.userInputs };
+
+      // If autoExecute, skip directly to running state
+      if (action.autoExecute) {
+        const lanes: SessionLane[] = state.selectedSites.map((site) => ({
+          id: `lane-${site.id}-${generateId()}`,
+          site,
+          status: 'queued' as LaneStatus,
+          progress: 0,
+        }));
+        return {
+          ...state,
+          status: 'running',
+          completedInputs,
+          lanes,
+          startTime: Date.now(),
+          estimatedTotalTime: Math.max(...state.selectedSites.map(s => s.estimatedTime || 30)),
+          progress: computeProgress(lanes),
+        };
+      }
+      return {
+        ...state,
+        status: 'configuring',
+        completedInputs,
+      };
+    }
 
     case 'UPDATE_SITES':
       return {
@@ -193,20 +222,65 @@ function orchestratorReducer(
     case 'RESET':
       return createInitialState();
 
+    case 'RESTORE':
+      return action.state;
+
     default:
       return state;
   }
 }
 
-// Parse query to understand intent
-async function parseQuery(query: string): Promise<ParsedQuery> {
-  await new Promise(resolve => setTimeout(resolve, 400));
+// Response type from the parse-query API
+interface ParseQueryAPIResponse {
+  intent: QueryIntent;
+  subject: string;
+  goal: string;
+  needsClarification: boolean;
+  clarifyingQuestions: { key: string; label: string; type: 'text' | 'number' | 'select'; placeholder?: string; options?: { value: string; label: string }[]; required: boolean }[];
+  suggestedSites: { id: string; name: string; domain: string; icon?: string; selected: boolean; estimatedTime?: number }[];
+  reasoning: string;
+}
 
+// Parse query to understand intent via AI
+async function parseQuery(query: string): Promise<{ parsed: ParsedQuery; needsClarification: boolean }> {
+  try {
+    const response = await fetch('/api/parse-query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to parse query');
+    }
+
+    const data: ParseQueryAPIResponse = await response.json();
+
+    const parsed: ParsedQuery = {
+      originalQuery: query,
+      intent: data.intent,
+      subject: data.subject,
+      goal: data.goal,
+      suggestedSites: data.suggestedSites,
+      isHighStakes: data.needsClarification,
+      requiredInputs: data.clarifyingQuestions.length > 0 ? data.clarifyingQuestions : undefined,
+    };
+
+    return { parsed, needsClarification: data.needsClarification };
+
+  } catch (error) {
+    console.error('Parse query error:', error);
+    // Fallback to basic parsing
+    return fallbackParseQuery(query);
+  }
+}
+
+// Fallback parser when API fails
+function fallbackParseQuery(query: string): { parsed: ParsedQuery; needsClarification: boolean } {
   const lowerQuery = query.toLowerCase();
   let intent: QueryIntent = 'general';
   let subject = query;
   let goal = 'find information';
-  let isHighStakes = false;
 
   if (lowerQuery.includes('price') || lowerQuery.includes('cost') || lowerQuery.includes('cheap') || lowerQuery.includes('best deal') || lowerQuery.includes('best price')) {
     intent = 'price_comparison';
@@ -216,7 +290,6 @@ async function parseQuery(query: string): Promise<ParsedQuery> {
   } else if (lowerQuery.includes('insurance') || lowerQuery.includes('quote')) {
     intent = 'quote_request';
     goal = 'compare quotes';
-    isHighStakes = true;
   } else if (lowerQuery.includes('in stock') || lowerQuery.includes('available')) {
     intent = 'availability_check';
     goal = 'check availability';
@@ -228,16 +301,15 @@ async function parseQuery(query: string): Promise<ParsedQuery> {
   const suggestedSites = [...(SITE_CATALOGS[intent] || SITE_CATALOGS.general)];
 
   return {
-    originalQuery: query,
-    intent,
-    subject,
-    goal,
-    suggestedSites,
-    isHighStakes,
-    requiredInputs: isHighStakes ? [
-      { key: 'address', label: 'Property Address', type: 'text', placeholder: '123 Main St, City, State', required: true },
-      { key: 'value', label: 'Home Value', type: 'text', placeholder: '$400,000', required: true },
-    ] : undefined,
+    parsed: {
+      originalQuery: query,
+      intent,
+      subject,
+      goal,
+      suggestedSites,
+      isHighStakes: false,
+    },
+    needsClarification: false,
   };
 }
 
@@ -298,9 +370,38 @@ function generateSynthesis(state: OrchestratorState): Synthesis {
     if (avgPrice > best.price) {
       insights.push(`This is ${((avgPrice - best.price) / avgPrice * 100).toFixed(0)}% below average`);
     }
-  } else if (intent === 'quote_request' && best?.annualCost) {
-    headline = `Best rate: $${best.annualCost.toLocaleString()}/year at ${best.site}`;
-    summary = `Compared ${results.length} insurance quotes. ${best.site} offers the lowest annual rate.`;
+  } else if (intent === 'quote_request') {
+    const quotesWithCost = results.filter(r => r.annualCost !== undefined);
+
+    if (best?.annualCost) {
+      const monthlyPayment = best.monthlyCost || Math.round(best.annualCost / 12);
+      const avgCost = quotesWithCost.length > 0
+        ? Math.round(quotesWithCost.reduce((sum, r) => sum + (r.annualCost || 0), 0) / quotesWithCost.length)
+        : 0;
+      const savingsVsAvg = avgCost > best.annualCost ? avgCost - best.annualCost : 0;
+
+      headline = `Recommended: ${best.site} at $${monthlyPayment}/mo`;
+      summary = `We compared ${quotesWithCost.length} insurance quotes. ${best.site} offers the best value at $${best.annualCost.toLocaleString()}/year ($${monthlyPayment}/month)${best.deductible ? ` with a $${best.deductible} deductible` : ''}.`;
+
+      if (savingsVsAvg > 0) {
+        insights.push(`Save $${savingsVsAvg.toLocaleString()}/year vs. the average quote`);
+      }
+      if (best.coverage) {
+        insights.push(`Coverage level: ${best.coverage}`);
+      }
+
+      // Add comparison insights
+      const sortedByPrice = [...quotesWithCost].sort((a, b) => (a.annualCost || 0) - (b.annualCost || 0));
+      if (sortedByPrice.length >= 2) {
+        const second = sortedByPrice[1];
+        if (second.annualCost && second.annualCost > best.annualCost) {
+          insights.push(`$${(second.annualCost - best.annualCost).toLocaleString()}/year cheaper than ${second.site}`);
+        }
+      }
+    } else {
+      headline = `Found ${quotesWithCost.length} quotes`;
+      summary = `Compared quotes from ${results.length} insurance providers.`;
+    }
   } else {
     headline = `Found ${results.length} results`;
     summary = `Completed search across ${state.progress.completed} sites.`;
@@ -323,7 +424,11 @@ function generateSynthesis(state: OrchestratorState): Synthesis {
 interface UseOrchestratorOptions {
   maxConcurrent?: number;
   staggerDelay?: number;
+  disableApi?: boolean; // Disable actual API calls for development
 }
+
+// Flag to disable API calls globally
+const API_DISABLED = true;
 
 export function useOrchestrator(options: UseOrchestratorOptions = {}) {
   const [state, dispatch] = useReducer(orchestratorReducer, createInitialState());
@@ -352,11 +457,16 @@ export function useOrchestrator(options: UseOrchestratorOptions = {}) {
     if (!query.trim()) return;
     dispatch({ type: 'SET_QUERY', query });
     try {
-      const parsed = await parseQuery(query);
-      dispatch({ type: 'PARSE_COMPLETE', parsed });
+      const { parsed, needsClarification } = await parseQuery(query);
+      dispatch({ type: 'PARSE_COMPLETE', parsed, needsClarification });
     } catch {
       dispatch({ type: 'ERROR', error: 'Failed to understand query' });
     }
+  }, []);
+
+  // Complete clarification and move to configuring (or running if autoExecute)
+  const completeClarification = useCallback((autoExecute?: boolean) => {
+    dispatch({ type: 'CLARIFICATION_COMPLETE', autoExecute });
   }, []);
 
   // Update sites
@@ -397,6 +507,134 @@ export function useOrchestrator(options: UseOrchestratorOptions = {}) {
       laneId: lane.id,
       update: { status: 'initializing', progress: 10, currentAction: `Starting ${lane.site.name}...`, startTime: Date.now() },
     });
+
+    // If API is disabled, simulate progress and completion with realistic timing
+    if (API_DISABLED) {
+      console.log(`[API DISABLED] Simulating lane ${laneId}`);
+
+      // Base time varies per site (10-18 seconds) - deliberately slow for visual effect
+      const baseTime = 10000 + Math.random() * 8000;
+
+      // Step 1: Browser launching (15%)
+      setTimeout(() => {
+        dispatch({
+          type: 'LANE_UPDATE',
+          laneId: lane.id,
+          update: {
+            status: 'initializing',
+            progress: 15,
+            currentAction: `Launching browser for ${lane.site.name}...`,
+            streamingUrl: `placeholder-${lane.id}`, // Enable expand
+          },
+        });
+      }, baseTime * 0.1);
+
+      // Step 2: Navigating to site (30%)
+      setTimeout(() => {
+        dispatch({
+          type: 'LANE_UPDATE',
+          laneId: lane.id,
+          update: { status: 'navigating', progress: 30, currentAction: `Navigating to ${lane.site.domain}...` },
+        });
+      }, baseTime * 0.2);
+
+      // Step 3: Page loading (45%)
+      setTimeout(() => {
+        dispatch({
+          type: 'LANE_UPDATE',
+          laneId: lane.id,
+          update: { status: 'navigating', progress: 45, currentAction: `Loading page content...` },
+        });
+      }, baseTime * 0.35);
+
+      // Step 4: Searching (55%)
+      setTimeout(() => {
+        dispatch({
+          type: 'LANE_UPDATE',
+          laneId: lane.id,
+          update: { status: 'extracting', progress: 55, currentAction: `Searching for product...` },
+        });
+      }, baseTime * 0.5);
+
+      // Step 5: Found product (70%)
+      setTimeout(() => {
+        dispatch({
+          type: 'LANE_UPDATE',
+          laneId: lane.id,
+          update: { status: 'extracting', progress: 70, currentAction: `Found product, extracting details...` },
+        });
+      }, baseTime * 0.65);
+
+      // Step 6: Extracting price (85%)
+      setTimeout(() => {
+        dispatch({
+          type: 'LANE_UPDATE',
+          laneId: lane.id,
+          update: { status: 'extracting', progress: 85, currentAction: `Reading price and availability...` },
+        });
+      }, baseTime * 0.8);
+
+      // Step 7: Complete
+      setTimeout(() => {
+        const intent = currentState.parsedQuery?.intent;
+        let mockResult: ExtractedResult;
+
+        if (intent === 'quote_request') {
+          // Insurance quote mock data
+          const baseAnnual = 800 + Math.floor(Math.random() * 1200);
+          const deductibleOptions = [250, 500, 1000];
+          const deductible = deductibleOptions[Math.floor(Math.random() * deductibleOptions.length)];
+          const coverageOptions = ['Liability Only', 'Standard', 'Full Coverage', 'Premium'];
+          const coverage = coverageOptions[Math.floor(Math.random() * coverageOptions.length)];
+
+          mockResult = {
+            site: lane.site.name,
+            siteDomain: lane.site.domain,
+            success: true,
+            extractedAt: Date.now(),
+            url: `https://${lane.site.domain}/quote/example`,
+            annualCost: baseAnnual,
+            monthlyCost: Math.round(baseAnnual / 12),
+            deductible: deductible,
+            coverage: coverage,
+            currency: 'USD',
+          };
+        } else {
+          // Product price mock data
+          const basePrice = 189 + Math.floor(Math.random() * 60);
+          const hasFreeShipping = Math.random() > 0.4;
+          const isInStock = Math.random() > 0.15;
+
+          const deliveryOptions = [
+            'Arrives Friday',
+            'Arrives tomorrow',
+            'Arrives in 2 days',
+            'Arrives next week',
+            'Arrives Saturday',
+            '2-day delivery',
+          ];
+          const deliveryEstimate = deliveryOptions[Math.floor(Math.random() * deliveryOptions.length)];
+
+          mockResult = {
+            site: lane.site.name,
+            siteDomain: lane.site.domain,
+            success: true,
+            extractedAt: Date.now(),
+            url: `https://${lane.site.domain}/product/example`,
+            price: basePrice,
+            currency: 'USD',
+            inStock: isInStock,
+            shipping: hasFreeShipping ? 'Free shipping' : '$5.99 shipping',
+            shippingCost: hasFreeShipping ? 0 : 5.99,
+            deliveryEstimate: isInStock ? deliveryEstimate : undefined,
+          };
+        }
+
+        dispatch({ type: 'LANE_COMPLETE', laneId, result: mockResult });
+      }, baseTime);
+
+      return;
+    }
 
     try {
       const result = await runPlaygroundQuery(query);
@@ -544,6 +782,11 @@ export function useOrchestrator(options: UseOrchestratorOptions = {}) {
     dispatch({ type: 'RESET' });
   }, [cleanupPolling]);
 
+  // Restore from saved state
+  const restore = useCallback((savedState: OrchestratorState) => {
+    dispatch({ type: 'RESTORE', state: savedState });
+  }, []);
+
   // Current best
   const currentBest = state.lanes
     .filter(l => l.status === 'complete' && l.result?.price)
@@ -555,6 +798,8 @@ export function useOrchestrator(options: UseOrchestratorOptions = {}) {
     originalQuery: state.originalQuery,
     parsedQuery: state.parsedQuery,
     selectedSites: state.selectedSites,
+    userInputs: state.userInputs,
+    completedInputs: state.completedInputs,
     lanes: state.lanes,
     progress: state.progress,
     aggregatedResults: state.aggregatedResults,
@@ -564,6 +809,7 @@ export function useOrchestrator(options: UseOrchestratorOptions = {}) {
     currentBest,
     isIdle: state.status === 'idle',
     isParsing: state.status === 'parsing',
+    isClarifying: state.status === 'clarifying',
     isConfiguring: state.status === 'configuring',
     isRunning: state.status === 'running',
     isComplete: state.status === 'complete' || state.status === 'completing',
@@ -572,7 +818,9 @@ export function useOrchestrator(options: UseOrchestratorOptions = {}) {
     updateSites,
     toggleSite,
     setUserInput,
+    completeClarification,
     execute,
     reset,
+    restore,
   };
 }

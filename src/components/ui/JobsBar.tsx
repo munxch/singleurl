@@ -1,10 +1,23 @@
 'use client';
 
-import { Job } from '@/hooks/useJobManager';
-import { LoaderIcon, CheckCircleIcon, AlertTriangleIcon, XIcon, MaximizeIcon } from '@/components/icons';
+import { LoaderIcon, CheckCircleIcon, AlertTriangleIcon, XIcon } from '@/components/icons';
+
+// Job display data for the bar
+interface JobDisplay {
+  id: string;
+  query: string;
+  status: 'configuring' | 'running' | 'complete' | 'error';
+  createdAt: number;
+  progress: {
+    total: number;
+    completed: number;
+    failed: number;
+  };
+  isMinimized: boolean;
+}
 
 interface JobsBarProps {
-  jobs: Job[];
+  jobs: JobDisplay[];
   activeJobId: string | null;
   onSwitchToJob: (jobId: string) => void;
   onRemoveJob: (jobId: string) => void;
@@ -16,39 +29,24 @@ export function JobsBar({
   activeJobId,
   onSwitchToJob,
   onRemoveJob,
-  onNewJob,
 }: JobsBarProps) {
-  // Only show minimized or completed jobs that aren't the active one
-  const visibleJobs = jobs.filter(j =>
-    (j.isMinimized || j.status === 'complete') && j.id !== activeJobId
-  );
+  // Only show jobs that aren't the active one
+  const visibleJobs = jobs.filter(j => j.id !== activeJobId && j.status !== 'configuring');
 
   if (visibleJobs.length === 0) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-50 pointer-events-none">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex flex-wrap gap-2 justify-center pointer-events-auto">
-          {visibleJobs.map((job) => (
-            <JobPill
-              key={job.id}
-              job={job}
-              onSwitch={() => onSwitchToJob(job.id)}
-              onRemove={() => onRemoveJob(job.id)}
-            />
-          ))}
-
-          {/* New job button if there are background jobs */}
-          {jobs.some(j => j.status === 'running' && j.isMinimized) && (
-            <button
-              onClick={onNewJob}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 text-blue-300 text-sm font-medium transition-all"
-            >
-              <span className="text-lg">+</span>
-              New search
-            </button>
-          )}
-        </div>
+    <div className="fixed bottom-6 left-0 right-0 z-50 pointer-events-none">
+      <div className="flex flex-col items-center gap-2 pointer-events-auto">
+        <div className="text-white/40 text-xs mb-1">Recent searches</div>
+        {visibleJobs.slice(0, 5).map((job) => (
+          <JobPill
+            key={job.id}
+            job={job}
+            onSwitch={() => onSwitchToJob(job.id)}
+            onRemove={() => onRemoveJob(job.id)}
+          />
+        ))}
       </div>
     </div>
   );
@@ -59,79 +57,65 @@ function JobPill({
   onSwitch,
   onRemove,
 }: {
-  job: Job;
+  job: JobDisplay;
   onSwitch: () => void;
   onRemove: () => void;
 }) {
   const getStatusIcon = () => {
     switch (job.status) {
       case 'running':
-        return <LoaderIcon className="w-4 h-4 animate-spin text-blue-400" />;
+        return <LoaderIcon className="w-3.5 h-3.5 animate-spin text-yellow-400" />;
       case 'complete':
-        return <CheckCircleIcon className="w-4 h-4 text-green-400" />;
+        return <CheckCircleIcon className="w-3.5 h-3.5 text-green-400" />;
       case 'error':
-        return <AlertTriangleIcon className="w-4 h-4 text-red-400" />;
+        return <AlertTriangleIcon className="w-3.5 h-3.5 text-red-400" />;
       default:
         return null;
     }
   };
 
-  const getStatusColor = () => {
+  const getStatusLabel = () => {
     switch (job.status) {
       case 'running':
-        return 'border-blue-500/40 bg-blue-500/10';
+        return `Running ${job.progress.completed}/${job.progress.total}`;
       case 'complete':
-        return 'border-green-500/40 bg-green-500/10';
+        return 'Complete';
       case 'error':
-        return 'border-red-500/40 bg-red-500/10';
+        return 'Failed';
       default:
-        return 'border-white/20 bg-white/5';
+        return '';
     }
   };
 
   // Truncate query for display
-  const displayQuery = job.query.length > 30
-    ? job.query.substring(0, 30) + '...'
-    : job.query || 'New search';
+  const displayQuery = job.query.length > 40
+    ? job.query.substring(0, 40) + '...'
+    : job.query || 'Search';
 
   return (
     <div
-      className={`flex items-center gap-2 px-3 py-2 rounded-full border ${getStatusColor()} animate-fadeIn`}
+      onClick={onSwitch}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === 'Enter' && onSwitch()}
+      className="group flex items-center gap-3 px-4 py-2.5 rounded-xl bg-black/60 backdrop-blur-sm border border-white/10 hover:border-white/20 hover:bg-black/70 transition-all shadow-lg cursor-pointer"
     >
       {getStatusIcon()}
 
-      <button
-        onClick={onSwitch}
-        className="text-white/80 text-sm hover:text-white transition-colors flex items-center gap-2"
-      >
-        <span className="max-w-[150px] truncate">{displayQuery}</span>
-        {job.status === 'running' && (
-          <span className="text-white/50 text-xs">
-            {job.progress.completed}/{job.progress.total}
-          </span>
-        )}
-      </button>
-
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onSwitch();
-        }}
-        className="p-1 text-white/40 hover:text-white/70 transition-colors"
-        title="Maximize"
-      >
-        <MaximizeIcon className="w-3 h-3" />
-      </button>
+      <div className="flex flex-col items-start">
+        <span className="text-white/90 text-sm font-medium">{displayQuery}</span>
+        <span className="text-white/40 text-xs">{getStatusLabel()}</span>
+      </div>
 
       <button
         onClick={(e) => {
           e.stopPropagation();
           onRemove();
         }}
-        className="p-1 text-white/40 hover:text-red-400 transition-colors"
+        className="ml-2 p-1 text-white/30 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
         title="Remove"
       >
-        <XIcon className="w-3 h-3" />
+        <XIcon className="w-3.5 h-3.5" />
       </button>
     </div>
   );
