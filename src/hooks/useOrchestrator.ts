@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect, useReducer } from 'react';
+import { useRef, useCallback, useEffect, useReducer } from 'react';
 import { runPlaygroundQuery, getSessionStatus } from '@/lib/api';
 import {
   OrchestratorState,
   OrchestratorAction,
-  OrchestratorStatus,
   ParsedQuery,
   TargetSite,
   SessionLane,
@@ -29,7 +28,7 @@ const createInitialState = (): OrchestratorState => ({
   selectedSites: [],
   lanes: [],
   maxConcurrent: 6,
-  staggerDelay: 300, // 300ms between spawns
+  staggerDelay: 300,
   nextActions: [],
   progress: {
     total: 0,
@@ -40,6 +39,46 @@ const createInitialState = (): OrchestratorState => ({
   },
 });
 
+// Helper to compute progress from lanes
+function computeProgress(lanes: SessionLane[]) {
+  return {
+    total: lanes.length,
+    queued: lanes.filter(l => l.status === 'queued').length,
+    running: lanes.filter(l => ['initializing', 'navigating', 'extracting'].includes(l.status)).length,
+    completed: lanes.filter(l => l.status === 'complete').length,
+    failed: lanes.filter(l => l.status === 'error').length,
+  };
+}
+
+// Generate next actions based on results
+function generateNextActions(state: OrchestratorState): NextAction[] {
+  const actions: NextAction[] = [];
+  const best = state.aggregatedResults?.best;
+
+  if (best?.url) {
+    actions.push({
+      type: 'purchase',
+      label: state.parsedQuery?.intent === 'price_comparison' ? `Buy from ${best.site}` : `View on ${best.site}`,
+      primary: true,
+      url: best.url,
+    });
+  }
+
+  actions.push({ type: 'save', label: 'Save results' });
+
+  if (state.parsedQuery?.intent === 'price_comparison') {
+    actions.push({ type: 'alert', label: 'Alert if price drops' });
+  }
+
+  if (state.progress.failed > 0) {
+    actions.push({ type: 'retry', label: `Retry ${state.progress.failed} failed` });
+  }
+
+  actions.push({ type: 'new_search', label: 'New search' });
+
+  return actions;
+}
+
 // Reducer
 function orchestratorReducer(
   state: OrchestratorState,
@@ -47,11 +86,7 @@ function orchestratorReducer(
 ): OrchestratorState {
   switch (action.type) {
     case 'SET_QUERY':
-      return {
-        ...state,
-        originalQuery: action.query,
-        status: 'parsing',
-      };
+      return { ...state, originalQuery: action.query, status: 'parsing' };
 
     case 'PARSE_COMPLETE':
       return {
@@ -71,19 +106,14 @@ function orchestratorReducer(
       };
 
     case 'SET_USER_INPUT':
-      return {
-        ...state,
-        userInputs: {
-          ...state.userInputs,
-          [action.key]: action.value,
-        },
-      };
+      return { ...state, userInputs: { ...state.userInputs, [action.key]: action.value } };
 
     case 'START_EXECUTION': {
-      const lanes: SessionLane[] = state.selectedSites.map((site, index) => ({
+      // Create lanes from selected sites
+      const lanes: SessionLane[] = state.selectedSites.map((site) => ({
         id: `lane-${site.id}-${generateId()}`,
         site,
-        status: index < state.maxConcurrent ? 'initializing' : 'queued',
+        status: 'queued' as LaneStatus,
         progress: 0,
       }));
 
@@ -93,13 +123,7 @@ function orchestratorReducer(
         lanes,
         startTime: Date.now(),
         estimatedTotalTime: Math.max(...state.selectedSites.map(s => s.estimatedTime || 30)),
-        progress: {
-          total: lanes.length,
-          queued: lanes.filter(l => l.status === 'queued').length,
-          running: lanes.filter(l => l.status === 'initializing').length,
-          completed: 0,
-          failed: 0,
-        },
+        progress: computeProgress(lanes),
       };
     }
 
@@ -107,8 +131,7 @@ function orchestratorReducer(
       const lanes = state.lanes.map(lane =>
         lane.id === action.laneId ? { ...lane, ...action.update } : lane
       );
-      const progress = computeProgress(lanes);
-      return { ...state, lanes, progress };
+      return { ...state, lanes, progress: computeProgress(lanes) };
     }
 
     case 'LANE_COMPLETE': {
@@ -117,8 +140,7 @@ function orchestratorReducer(
           ? { ...lane, status: 'complete' as LaneStatus, result: action.result, progress: 100, endTime: Date.now() }
           : lane
       );
-      const progress = computeProgress(lanes);
-      return { ...state, lanes, progress };
+      return { ...state, lanes, progress: computeProgress(lanes) };
     }
 
     case 'LANE_ERROR': {
@@ -127,24 +149,18 @@ function orchestratorReducer(
           ? { ...lane, status: 'error' as LaneStatus, error: action.error, endTime: Date.now() }
           : lane
       );
-      const progress = computeProgress(lanes);
-      return { ...state, lanes, progress };
+      return { ...state, lanes, progress: computeProgress(lanes) };
     }
 
     case 'AGGREGATE_RESULTS': {
-      const results = state.lanes
-        .filter(l => l.status === 'complete' && l.result)
-        .map(l => l.result!);
-
-      // Find best result based on intent
+      const results = state.lanes.filter(l => l.status === 'complete' && l.result).map(l => l.result!);
       let best: ExtractedResult | undefined;
+
       if (state.parsedQuery?.intent === 'price_comparison' || state.parsedQuery?.intent === 'availability_check') {
-        best = results
-          .filter(r => r.price !== undefined && r.inStock !== false)
+        best = results.filter(r => r.price !== undefined && r.inStock !== false)
           .sort((a, b) => (a.price || Infinity) - (b.price || Infinity))[0];
       } else if (state.parsedQuery?.intent === 'quote_request') {
-        best = results
-          .filter(r => r.annualCost !== undefined)
+        best = results.filter(r => r.annualCost !== undefined)
           .sort((a, b) => (a.annualCost || Infinity) - (b.annualCost || Infinity))[0];
       }
 
@@ -166,27 +182,13 @@ function orchestratorReducer(
     }
 
     case 'SYNTHESIZE_RESULTS':
-      return {
-        ...state,
-        synthesis: action.synthesis,
-        status: 'completing',
-      };
+      return { ...state, synthesis: action.synthesis, status: 'completing' };
 
-    case 'COMPLETE': {
-      const nextActions = generateNextActions(state);
-      return {
-        ...state,
-        status: 'complete',
-        nextActions,
-      };
-    }
+    case 'COMPLETE':
+      return { ...state, status: 'complete', nextActions: generateNextActions(state) };
 
     case 'ERROR':
-      return {
-        ...state,
-        status: 'error',
-        error: action.error,
-      };
+      return { ...state, status: 'error', error: action.error };
 
     case 'RESET':
       return createInitialState();
@@ -196,99 +198,33 @@ function orchestratorReducer(
   }
 }
 
-// Helper to compute progress from lanes
-function computeProgress(lanes: SessionLane[]) {
-  return {
-    total: lanes.length,
-    queued: lanes.filter(l => l.status === 'queued').length,
-    running: lanes.filter(l => ['initializing', 'navigating', 'extracting'].includes(l.status)).length,
-    completed: lanes.filter(l => l.status === 'complete').length,
-    failed: lanes.filter(l => l.status === 'error').length,
-  };
-}
-
-// Generate next actions based on results
-function generateNextActions(state: OrchestratorState): NextAction[] {
-  const actions: NextAction[] = [];
-  const best = state.aggregatedResults?.best;
-
-  if (best?.url) {
-    if (state.parsedQuery?.intent === 'price_comparison') {
-      actions.push({
-        type: 'purchase',
-        label: `Buy from ${best.site}`,
-        primary: true,
-        url: best.url,
-      });
-    } else {
-      actions.push({
-        type: 'purchase',
-        label: `View on ${best.site}`,
-        primary: true,
-        url: best.url,
-      });
-    }
-  }
-
-  actions.push({
-    type: 'save',
-    label: 'Save results',
-  });
-
-  if (state.parsedQuery?.intent === 'price_comparison') {
-    actions.push({
-      type: 'alert',
-      label: 'Alert if price drops',
-    });
-  }
-
-  if (state.progress.failed > 0) {
-    actions.push({
-      type: 'retry',
-      label: `Retry ${state.progress.failed} failed`,
-    });
-  }
-
-  actions.push({
-    type: 'new_search',
-    label: 'New search',
-  });
-
-  return actions;
-}
-
 // Parse query to understand intent
 async function parseQuery(query: string): Promise<ParsedQuery> {
-  // Simulate AI parsing (in production, this would call an API)
-  await new Promise(resolve => setTimeout(resolve, 600));
+  await new Promise(resolve => setTimeout(resolve, 400));
 
   const lowerQuery = query.toLowerCase();
-
   let intent: QueryIntent = 'general';
   let subject = query;
   let goal = 'find information';
   let isHighStakes = false;
 
-  // Detect intent from keywords
-  if (lowerQuery.includes('price') || lowerQuery.includes('cost') || lowerQuery.includes('cheap') || lowerQuery.includes('best deal')) {
+  if (lowerQuery.includes('price') || lowerQuery.includes('cost') || lowerQuery.includes('cheap') || lowerQuery.includes('best deal') || lowerQuery.includes('best price')) {
     intent = 'price_comparison';
     goal = 'find best price';
-    // Extract product name (simplified)
     const priceMatch = query.match(/(?:price|cost|deal)(?:\s+(?:for|of|on))?\s+(.+?)(?:\s+(?:on|at|from|across))?$/i);
     if (priceMatch) subject = priceMatch[1].trim();
   } else if (lowerQuery.includes('insurance') || lowerQuery.includes('quote')) {
     intent = 'quote_request';
     goal = 'compare quotes';
     isHighStakes = true;
-  } else if (lowerQuery.includes('in stock') || lowerQuery.includes('available') || lowerQuery.includes('availability')) {
+  } else if (lowerQuery.includes('in stock') || lowerQuery.includes('available')) {
     intent = 'availability_check';
     goal = 'check availability';
-  } else if (lowerQuery.includes('hours') || lowerQuery.includes('open') || lowerQuery.includes('when')) {
+  } else if (lowerQuery.includes('hours') || lowerQuery.includes('open')) {
     intent = 'information_lookup';
     goal = 'find information';
   }
 
-  // Get suggested sites based on intent
   const suggestedSites = [...(SITE_CATALOGS[intent] || SITE_CATALOGS.general)];
 
   return {
@@ -298,17 +234,14 @@ async function parseQuery(query: string): Promise<ParsedQuery> {
     goal,
     suggestedSites,
     isHighStakes,
-    requiredInputs: isHighStakes
-      ? [
-          { key: 'address', label: 'Property Address', type: 'text', placeholder: '123 Main St, City, State', required: true },
-          { key: 'value', label: 'Home Value', type: 'text', placeholder: '$400,000', required: true },
-          { key: 'year', label: 'Year Built', type: 'text', placeholder: '1985', required: false },
-        ]
-      : undefined,
+    requiredInputs: isHighStakes ? [
+      { key: 'address', label: 'Property Address', type: 'text', placeholder: '123 Main St, City, State', required: true },
+      { key: 'value', label: 'Home Value', type: 'text', placeholder: '$400,000', required: true },
+    ] : undefined,
   };
 }
 
-// Extract result from session output (simplified parser)
+// Extract result from session output
 function extractResult(site: TargetSite, output: unknown, intent: QueryIntent): ExtractedResult {
   const result: ExtractedResult = {
     site: site.name,
@@ -318,26 +251,22 @@ function extractResult(site: TargetSite, output: unknown, intent: QueryIntent): 
     url: `https://${site.domain}`,
   };
 
-  // Parse the output if it's a string (the raw response from the agent)
   if (typeof output === 'object' && output !== null && 'raw' in output) {
     const raw = (output as { raw: string }).raw;
     result.rawResponse = raw;
 
-    // Try to extract price
     const priceMatch = raw.match(/\$(\d+(?:,\d{3})*(?:\.\d{2})?)/);
     if (priceMatch) {
       result.price = parseFloat(priceMatch[1].replace(',', ''));
       result.currency = 'USD';
     }
 
-    // Check for stock status
     if (raw.toLowerCase().includes('in stock') || raw.toLowerCase().includes('available')) {
       result.inStock = true;
-    } else if (raw.toLowerCase().includes('out of stock') || raw.toLowerCase().includes('unavailable')) {
+    } else if (raw.toLowerCase().includes('out of stock')) {
       result.inStock = false;
     }
 
-    // Try to extract shipping info
     if (raw.toLowerCase().includes('free shipping') || raw.toLowerCase().includes('free delivery')) {
       result.shipping = 'Free';
       result.shippingCost = 0;
@@ -361,27 +290,14 @@ function generateSynthesis(state: OrchestratorState): Synthesis {
 
   if (intent === 'price_comparison' && best?.price) {
     headline = `Best price: $${best.price.toFixed(2)} at ${best.site}`;
-
     const pricesFound = results.filter(r => r.price).length;
-    const avgPrice = results.reduce((sum, r) => sum + (r.price || 0), 0) / pricesFound;
-
+    const avgPrice = pricesFound > 0 ? results.reduce((sum, r) => sum + (r.price || 0), 0) / pricesFound : 0;
     summary = `Found ${pricesFound} prices for ${subject}. The best deal is at ${best.site} for $${best.price.toFixed(2)}${best.shipping ? ` with ${best.shipping.toLowerCase()} shipping` : ''}.`;
 
-    if (best.inStock) {
-      insights.push(`${best.site} shows this item as in stock`);
-    }
-
+    if (best.inStock) insights.push(`${best.site} shows this item as in stock`);
     if (avgPrice > best.price) {
-      const savings = ((avgPrice - best.price) / avgPrice * 100).toFixed(0);
-      insights.push(`This is ${savings}% below the average price of $${avgPrice.toFixed(2)}`);
+      insights.push(`This is ${((avgPrice - best.price) / avgPrice * 100).toFixed(0)}% below average`);
     }
-
-    // Find the most expensive
-    const mostExpensive = results.sort((a, b) => (b.price || 0) - (a.price || 0))[0];
-    if (mostExpensive && mostExpensive.price && mostExpensive.price > best.price) {
-      insights.push(`${mostExpensive.site} charges $${(mostExpensive.price - best.price).toFixed(2)} more`);
-    }
-
   } else if (intent === 'quote_request' && best?.annualCost) {
     headline = `Best rate: $${best.annualCost.toLocaleString()}/year at ${best.site}`;
     summary = `Compared ${results.length} insurance quotes. ${best.site} offers the lowest annual rate.`;
@@ -412,9 +328,16 @@ interface UseOrchestratorOptions {
 export function useOrchestrator(options: UseOrchestratorOptions = {}) {
   const [state, dispatch] = useReducer(orchestratorReducer, createInitialState());
   const pollIntervalsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
-  const isExecutingRef = useRef(false);
+  const lanesRef = useRef<SessionLane[]>([]); // Keep current lanes in a ref for callbacks
+  const stateRef = useRef(state); // Keep current state in a ref
 
-  // Cleanup polling intervals
+  // Update refs when state changes
+  useEffect(() => {
+    lanesRef.current = state.lanes;
+    stateRef.current = state;
+  }, [state]);
+
+  // Cleanup
   const cleanupPolling = useCallback(() => {
     pollIntervalsRef.current.forEach(interval => clearInterval(interval));
     pollIntervalsRef.current.clear();
@@ -424,126 +347,60 @@ export function useOrchestrator(options: UseOrchestratorOptions = {}) {
     return () => cleanupPolling();
   }, [cleanupPolling]);
 
-  // Set query and parse it
+  // Set query and parse
   const setQuery = useCallback(async (query: string) => {
     if (!query.trim()) return;
-
     dispatch({ type: 'SET_QUERY', query });
-
     try {
       const parsed = await parseQuery(query);
       dispatch({ type: 'PARSE_COMPLETE', parsed });
-    } catch (error) {
+    } catch {
       dispatch({ type: 'ERROR', error: 'Failed to understand query' });
     }
   }, []);
 
-  // Update site selection
+  // Update sites
   const updateSites = useCallback((sites: TargetSite[]) => {
     dispatch({ type: 'UPDATE_SITES', sites });
   }, []);
 
-  // Toggle a specific site
+  // Toggle site
   const toggleSite = useCallback((siteId: string) => {
-    if (!state.parsedQuery) return;
-
-    const updatedSites = state.parsedQuery.suggestedSites.map(site =>
+    const currentState = stateRef.current;
+    if (!currentState.parsedQuery) return;
+    const updatedSites = currentState.parsedQuery.suggestedSites.map(site =>
       site.id === siteId ? { ...site, selected: !site.selected } : site
     );
     dispatch({ type: 'UPDATE_SITES', sites: updatedSites });
-  }, [state.parsedQuery]);
+  }, []);
 
-  // Set user input for high-stakes queries
+  // Set user input
   const setUserInput = useCallback((key: string, value: string) => {
     dispatch({ type: 'SET_USER_INPUT', key, value });
   }, []);
 
-  // Poll a single lane for updates
-  const pollLane = useCallback(async (lane: SessionLane) => {
-    if (!lane.sessionId) return;
-
-    try {
-      const session = await getSessionStatus(lane.sessionId);
-
-      // Update streaming URL if available
-      if (session.streaming_url && !lane.streamingUrl) {
-        dispatch({
-          type: 'LANE_UPDATE',
-          laneId: lane.id,
-          update: {
-            streamingUrl: session.streaming_url,
-            status: 'navigating',
-            progress: 30,
-            currentAction: `Loading ${lane.site.name}...`,
-          },
-        });
-      }
-
-      // Check for completion
-      if (session.status === 'completed') {
-        // Stop polling this lane
-        const interval = pollIntervalsRef.current.get(lane.id);
-        if (interval) {
-          clearInterval(interval);
-          pollIntervalsRef.current.delete(lane.id);
-        }
-
-        // Extract result
-        const result = extractResult(
-          lane.site,
-          session.output,
-          state.parsedQuery?.intent || 'general'
-        );
-
-        dispatch({ type: 'LANE_COMPLETE', laneId: lane.id, result });
-      } else if (session.status === 'error') {
-        const interval = pollIntervalsRef.current.get(lane.id);
-        if (interval) {
-          clearInterval(interval);
-          pollIntervalsRef.current.delete(lane.id);
-        }
-
-        dispatch({
-          type: 'LANE_ERROR',
-          laneId: lane.id,
-          error: session.error_message || 'Unknown error',
-        });
-      } else if (session.status === 'running') {
-        // Update progress based on session log length
-        const logLength = session.session_log?.length || 0;
-        const progress = Math.min(30 + logLength * 10, 90);
-        dispatch({
-          type: 'LANE_UPDATE',
-          laneId: lane.id,
-          update: {
-            status: 'extracting',
-            progress,
-            currentAction: `Analyzing ${lane.site.name}...`,
-          },
-        });
-      }
-    } catch (error) {
-      console.error(`Polling error for lane ${lane.id}:`, error);
+  // Start a lane (called after lanes are created in state)
+  const startLane = useCallback(async (laneId: string) => {
+    const lane = lanesRef.current.find(l => l.id === laneId);
+    if (!lane) {
+      console.error('Lane not found:', laneId);
+      return;
     }
-  }, [state.parsedQuery?.intent]);
 
-  // Start a single lane
-  const startLane = useCallback(async (lane: SessionLane) => {
-    const query = `Find ${state.parsedQuery?.goal || 'information'} for ${state.parsedQuery?.subject || state.originalQuery} on ${lane.site.domain}`;
+    const currentState = stateRef.current;
+    const query = `Find ${currentState.parsedQuery?.goal || 'information'} for ${currentState.parsedQuery?.subject || currentState.originalQuery} on ${lane.site.domain}`;
+
+    console.log(`Starting lane ${laneId} with query:`, query);
+
+    dispatch({
+      type: 'LANE_UPDATE',
+      laneId: lane.id,
+      update: { status: 'initializing', progress: 10, currentAction: `Starting ${lane.site.name}...`, startTime: Date.now() },
+    });
 
     try {
-      dispatch({
-        type: 'LANE_UPDATE',
-        laneId: lane.id,
-        update: {
-          status: 'initializing',
-          progress: 10,
-          currentAction: `Starting ${lane.site.name}...`,
-          startTime: Date.now(),
-        },
-      });
-
       const result = await runPlaygroundQuery(query);
+      console.log(`Lane ${laneId} session created:`, result.session_id);
 
       dispatch({
         type: 'LANE_UPDATE',
@@ -551,102 +408,148 @@ export function useOrchestrator(options: UseOrchestratorOptions = {}) {
         update: {
           sessionId: result.session_id,
           streamingUrl: result.streaming_url || undefined,
-          status: result.streaming_url ? 'navigating' : 'initializing',
-          progress: 20,
+          status: 'navigating',
+          progress: 25,
+          currentAction: `Loading ${lane.site.name}...`,
         },
       });
 
-      // Start polling this lane
-      const interval = setInterval(() => {
-        const currentLane = state.lanes.find(l => l.id === lane.id);
-        if (currentLane && currentLane.sessionId) {
-          pollLane(currentLane);
+      // Start polling
+      const pollFn = async () => {
+        const currentLane = lanesRef.current.find(l => l.id === laneId);
+        if (!currentLane?.sessionId) return;
+        if (currentLane.status === 'complete' || currentLane.status === 'error') {
+          const interval = pollIntervalsRef.current.get(laneId);
+          if (interval) {
+            clearInterval(interval);
+            pollIntervalsRef.current.delete(laneId);
+          }
+          return;
         }
-      }, 2000);
 
-      pollIntervalsRef.current.set(lane.id, interval);
+        try {
+          const session = await getSessionStatus(currentLane.sessionId);
+          console.log(`Lane ${laneId} status:`, session.status);
+
+          if (session.streaming_url && !currentLane.streamingUrl) {
+            dispatch({
+              type: 'LANE_UPDATE',
+              laneId,
+              update: { streamingUrl: session.streaming_url },
+            });
+          }
+
+          if (session.status === 'completed') {
+            const interval = pollIntervalsRef.current.get(laneId);
+            if (interval) {
+              clearInterval(interval);
+              pollIntervalsRef.current.delete(laneId);
+            }
+            const extractedResult = extractResult(currentLane.site, session.output, stateRef.current.parsedQuery?.intent || 'general');
+            dispatch({ type: 'LANE_COMPLETE', laneId, result: extractedResult });
+          } else if (session.status === 'error') {
+            const interval = pollIntervalsRef.current.get(laneId);
+            if (interval) {
+              clearInterval(interval);
+              pollIntervalsRef.current.delete(laneId);
+            }
+            dispatch({ type: 'LANE_ERROR', laneId, error: session.error_message || 'Unknown error' });
+          } else if (session.status === 'running') {
+            const logLength = session.session_log?.length || 0;
+            dispatch({
+              type: 'LANE_UPDATE',
+              laneId,
+              update: { status: 'extracting', progress: Math.min(30 + logLength * 10, 90), currentAction: `Analyzing ${currentLane.site.name}...` },
+            });
+          }
+        } catch (error) {
+          console.error(`Polling error for ${laneId}:`, error);
+        }
+      };
+
+      // Initial poll
+      setTimeout(pollFn, 1000);
+      // Then poll every 2 seconds
+      const interval = setInterval(pollFn, 2000);
+      pollIntervalsRef.current.set(laneId, interval);
 
     } catch (error) {
+      console.error(`Failed to start lane ${laneId}:`, error);
       dispatch({
         type: 'LANE_ERROR',
         laneId: lane.id,
         error: error instanceof Error ? error.message : 'Failed to start session',
       });
     }
-  }, [state.parsedQuery, state.originalQuery, state.lanes, pollLane]);
+  }, []);
 
-  // Execute all lanes
-  const execute = useCallback(async () => {
-    if (isExecutingRef.current) return;
+  // Execute - dispatch START_EXECUTION and let useEffect handle starting lanes
+  const execute = useCallback(() => {
+    if (state.status === 'running') return;
     if (state.selectedSites.length === 0) return;
-
-    isExecutingRef.current = true;
+    console.log('Starting execution with', state.selectedSites.length, 'sites');
     dispatch({ type: 'START_EXECUTION' });
+  }, [state.status, state.selectedSites.length]);
 
-    // Get lanes to start (limited by maxConcurrent)
+  // Effect to start lanes when execution begins
+  useEffect(() => {
+    if (state.status !== 'running') return;
+    if (state.lanes.length === 0) return;
+
+    // Check if any lanes haven't been started yet
+    const queuedLanes = state.lanes.filter(l => l.status === 'queued');
+    if (queuedLanes.length === 0) return;
+
+    console.log('Found', queuedLanes.length, 'queued lanes to start');
+
     const maxConcurrent = options.maxConcurrent || 6;
     const staggerDelay = options.staggerDelay || 300;
 
-    // We need to wait for the START_EXECUTION dispatch to update state
-    // So we'll use the selectedSites directly
-    const lanesToStart = state.selectedSites.slice(0, maxConcurrent);
+    // Start lanes with staggering
+    queuedLanes.slice(0, maxConcurrent).forEach((lane, index) => {
+      setTimeout(() => {
+        startLane(lane.id);
+      }, index * staggerDelay);
+    });
+  }, [state.status, state.lanes, options.maxConcurrent, options.staggerDelay, startLane]);
 
-    for (let i = 0; i < lanesToStart.length; i++) {
-      const site = lanesToStart[i];
-      const lane: SessionLane = {
-        id: `lane-${site.id}-${generateId()}`,
-        site,
-        status: 'initializing',
-        progress: 0,
-      };
-
-      // Stagger the starts
-      if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, staggerDelay));
-      }
-
-      startLane(lane);
-    }
-
-    isExecutingRef.current = false;
-  }, [state.selectedSites, options.maxConcurrent, options.staggerDelay, startLane]);
-
-  // Check if all lanes are complete
+  // Effect to check completion
   useEffect(() => {
     if (state.status !== 'running') return;
+    if (state.lanes.length === 0) return;
 
-    const allDone = state.lanes.length > 0 &&
-      state.lanes.every(l => l.status === 'complete' || l.status === 'error');
+    const allDone = state.lanes.every(l => l.status === 'complete' || l.status === 'error');
+    if (!allDone) return;
 
-    if (allDone) {
-      // Aggregate results
-      dispatch({ type: 'AGGREGATE_RESULTS' });
+    console.log('All lanes complete, aggregating results');
+    dispatch({ type: 'AGGREGATE_RESULTS' });
+  }, [state.status, state.lanes]);
 
-      // Generate synthesis
-      const synthesis = generateSynthesis(state);
-      dispatch({ type: 'SYNTHESIZE_RESULTS', synthesis });
+  // Effect to synthesize after aggregation
+  useEffect(() => {
+    if (!state.aggregatedResults) return;
+    if (state.synthesis) return;
 
-      // Mark as complete
-      setTimeout(() => {
-        dispatch({ type: 'COMPLETE' });
-      }, 500);
-    }
-  }, [state.lanes, state.status]);
+    const synthesis = generateSynthesis(state);
+    dispatch({ type: 'SYNTHESIZE_RESULTS', synthesis });
+
+    setTimeout(() => {
+      dispatch({ type: 'COMPLETE' });
+    }, 300);
+  }, [state.aggregatedResults, state.synthesis]);
 
   // Reset
   const reset = useCallback(() => {
     cleanupPolling();
-    isExecutingRef.current = false;
     dispatch({ type: 'RESET' });
   }, [cleanupPolling]);
 
-  // Get current best result (for live "best so far" display)
+  // Current best
   const currentBest = state.lanes
     .filter(l => l.status === 'complete' && l.result?.price)
     .sort((a, b) => (a.result?.price || Infinity) - (b.result?.price || Infinity))[0]?.result;
 
   return {
-    // State
     state,
     status: state.status,
     originalQuery: state.originalQuery,
@@ -659,16 +562,12 @@ export function useOrchestrator(options: UseOrchestratorOptions = {}) {
     nextActions: state.nextActions,
     error: state.error,
     currentBest,
-
-    // Computed
     isIdle: state.status === 'idle',
     isParsing: state.status === 'parsing',
     isConfiguring: state.status === 'configuring',
     isRunning: state.status === 'running',
     isComplete: state.status === 'complete' || state.status === 'completing',
     estimatedTime: state.estimatedTotalTime,
-
-    // Actions
     setQuery,
     updateSites,
     toggleSite,
