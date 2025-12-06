@@ -1,203 +1,277 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { MinoLogo } from '@/components/icons/MinoLogo';
-import { GlobeIcon, LoaderIcon, CheckCircleIcon, AlertTriangleIcon } from '@/components/icons';
-import { SearchInput, BrowserViewer, SessionEventsPanel } from '@/components/ui';
-import { useQueryFeedback, useSession } from '@/hooks';
-import { EXAMPLE_QUERIES } from '@/lib/constants';
-import { BrowserPresetKey } from '@/types';
+import { QueryEnricher, OrchestraProgress, ResultsAggregator } from '@/components/ui';
+import { useOrchestrator } from '@/hooks';
+import { PARALLEL_QUERY_EXAMPLES } from '@/types/orchestrator';
+import { SparklesIcon, ZapIcon, LayersIcon, RefreshIcon } from '@/components/icons';
 
 export default function Home() {
   const [query, setQuery] = useState('');
-  const [browserPreset, setBrowserPreset] = useState<BrowserPresetKey>('BASIC');
+  const [showOnboarding, setShowOnboarding] = useState(true);
 
   const {
-    sessionId,
-    streamingUrl,
-    sessionStatus,
-    sessionOutput,
-    events,
-    error,
+    status,
+    parsedQuery,
+    selectedSites,
+    lanes,
+    progress,
+    aggregatedResults,
+    synthesis,
+    nextActions,
+    currentBest,
+    isParsing,
+    isConfiguring,
     isRunning,
     isComplete,
-    runQuery,
+    setQuery: analyzeQuery,
+    toggleSite,
+    execute,
     reset,
-  } = useSession();
+  } = useOrchestrator();
 
-  const { feedback, isAnalyzing, clearFeedback } = useQueryFeedback(
-    query,
-    !isRunning && !isComplete
-  );
+  // Hide onboarding once user starts interacting
+  useEffect(() => {
+    if (status !== 'idle') {
+      setShowOnboarding(false);
+    }
+  }, [status]);
 
   const handleQueryChange = useCallback((newQuery: string) => {
     setQuery(newQuery);
   }, []);
 
-  const handleApplySuggestion = useCallback(() => {
-    if (feedback?.suggestedQuery) {
-      setQuery(feedback.suggestedQuery);
-      clearFeedback();
+  const handleAnalyze = useCallback(() => {
+    if (query.trim().length >= 5) {
+      analyzeQuery(query);
     }
-  }, [feedback, clearFeedback]);
+  }, [query, analyzeQuery]);
 
-  const handleRunQuery = useCallback(async () => {
-    if (!query.trim() || isRunning) return;
-    clearFeedback();
-    await runQuery(query);
-  }, [query, isRunning, clearFeedback, runQuery]);
+  const handleExecute = useCallback(async () => {
+    if (selectedSites.length > 0) {
+      await execute();
+    }
+  }, [selectedSites, execute]);
 
-  const handleTryAnother = useCallback(() => {
+  const handleNewSearch = useCallback(() => {
     setQuery('');
     reset();
+    setShowOnboarding(true);
   }, [reset]);
 
+  const handleAction = useCallback((action: { type: string; url?: string }) => {
+    if (action.type === 'new_search') {
+      handleNewSearch();
+    } else if (action.url) {
+      window.open(action.url, '_blank');
+    }
+  }, [handleNewSearch]);
+
+  const handleTryExample = useCallback((exampleQuery: string) => {
+    setQuery(exampleQuery);
+    setShowOnboarding(false);
+    setTimeout(() => analyzeQuery(exampleQuery), 100);
+  }, [analyzeQuery]);
+
+  // Determine which view to show
+  const showInput = status === 'idle' || status === 'parsing' || status === 'configuring';
+  const showProgress = status === 'running';
+  const showResults = status === 'complete' || status === 'completing';
+
   return (
-    <div className="flex flex-col items-center min-h-screen px-6 py-12">
-      {/* MINO Header Logo */}
-      <div
-        className="fixed top-6 left-0 right-0 flex justify-center z-50 animate-fadeIn"
-        style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.4))' }}
-      >
-        <MinoLogo />
-      </div>
+    <div className="min-h-screen flex flex-col">
+      {/* Background effects */}
+      <div className="ocean-bg" />
+      <div className="wave-overlay" />
 
-      <div className="w-full max-w-6xl mt-16 animate-fadeIn" style={{ animationDelay: '0.1s' }}>
-        {/* Header */}
-        <div className="mb-6">
-          <h2 className="text-3xl font-bold text-white mb-2 text-center text-shadow-lg">
-            Try a Search
-          </h2>
+      {/* Content */}
+      <div className="content flex-1 flex flex-col">
+        {/* MINO Header Logo */}
+        <header
+          className="flex justify-center py-6 animate-fadeIn"
+          style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.4))' }}
+        >
+          <MinoLogo />
+        </header>
 
-          {!isComplete && (
-            <div className="animate-fadeIn" style={{ animationDelay: '0.2s' }}>
-              <p className="text-white/70 text-center mb-6">
-                See Mino in action - enter a search query below
-              </p>
-
-              {/* Search Bar */}
-              <SearchInput
-                query={query}
-                onQueryChange={handleQueryChange}
-                onSubmit={handleRunQuery}
-                isRunning={isRunning}
-                queryFeedback={feedback}
-                isAnalyzingQuery={isAnalyzing}
-                onApplySuggestion={handleApplySuggestion}
-                selectedPreset={browserPreset}
-                onPresetChange={setBrowserPreset}
-              />
-
-              {/* Quick Examples */}
-              <div className="flex flex-wrap justify-center gap-2 mt-4">
-                {EXAMPLE_QUERIES.map((example) => (
-                  <button
-                    key={example}
-                    onClick={() => handleQueryChange(example)}
-                    disabled={isRunning}
-                    className="px-3 py-1.5 text-white/90 text-sm rounded-lg border border-white/20 transition-all disabled:opacity-50 hover:border-white/30 hover:text-white glass-button"
-                  >
-                    {example}
-                  </button>
-                ))}
+        {/* Main content area */}
+        <main className="flex-1 flex flex-col items-center px-6 py-8">
+          <div className="w-full max-w-4xl">
+            {/* Hero section - shown on first visit */}
+            {showOnboarding && status === 'idle' && (
+              <div className="text-center mb-12 animate-fadeIn">
+                <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 text-shadow-lg">
+                  You ask. Mino goes.
+                  <br />
+                  <span className="text-blue-400">Answers come back.</span>
+                </h1>
+                <p className="text-white/60 text-lg max-w-2xl mx-auto">
+                  Search multiple sites at once. Get synthesized answers, not raw data.
+                </p>
               </div>
-            </div>
-          )}
-        </div>
+            )}
 
-        {/* Panels Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 h-auto lg:h-[500px]">
-          {/* Left Panel: Browser View (60%) */}
-          <div className="lg:col-span-3 glass-panel p-4 h-[350px] lg:h-full">
-            <div className="flex items-center gap-2 mb-3 text-white/70 text-sm font-medium">
-              <GlobeIcon />
-              <span>Browser Session</span>
-              {sessionId && (
-                <span className="text-xs text-white/40 ml-auto font-mono">
-                  {sessionId.substring(0, 8)}...
-                </span>
-              )}
-            </div>
-            <div className="h-[calc(100%-40px)]">
-              {streamingUrl ? (
-                <BrowserViewer
-                  streamingUrl={streamingUrl}
-                  onStatusChange={(status) => {
-                    if (status === 'connected') {
-                      // Event handled by hook
+            {/* Compact header when not in onboarding */}
+            {!showOnboarding && showInput && (
+              <div className="text-center mb-6 animate-fadeIn">
+                <h2 className="text-2xl font-bold text-white text-shadow-lg">
+                  {isConfiguring ? 'Ready to search' : 'What would you like to know?'}
+                </h2>
+              </div>
+            )}
+
+            {/* Query Input / Enricher */}
+            {showInput && (
+              <div className="animate-fadeIn" style={{ animationDelay: '0.1s' }}>
+                <QueryEnricher
+                  query={query}
+                  onQueryChange={(q) => {
+                    handleQueryChange(q);
+                    // Auto-analyze after typing stops
+                    if (q.length >= 10 && status === 'idle') {
+                      const timeout = setTimeout(() => analyzeQuery(q), 800);
+                      return () => clearTimeout(timeout);
                     }
                   }}
+                  parsedQuery={parsedQuery || null}
+                  isParsing={isParsing}
+                  selectedSites={selectedSites}
+                  onToggleSite={toggleSite}
+                  onExecute={handleExecute}
+                  isReady={isConfiguring && selectedSites.length > 0}
                 />
-              ) : isRunning ? (
-                <div className="flex items-center justify-center h-full text-white/40">
-                  <div className="text-center">
-                    <LoaderIcon className="w-12 h-12 animate-spin mx-auto mb-3 text-blue-400" />
-                    <p>Starting browser session...</p>
-                    <p className="text-sm text-white/30 mt-1">Waiting for stream...</p>
-                  </div>
-                </div>
-              ) : isComplete ? (
-                <div className="flex items-center justify-center h-full text-white/40">
-                  <div className="text-center">
-                    <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-3">
-                      <CheckCircleIcon className="text-green-400" />
-                    </div>
-                    <p className="text-green-400 mb-4">Query completed!</p>
-                    <button
-                      onClick={handleTryAnother}
-                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-                    >
-                      Try another query
-                    </button>
-                  </div>
-                </div>
-              ) : error ? (
-                <div className="flex items-center justify-center h-full text-white/40">
-                  <div className="text-center">
-                    <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-3">
-                      <AlertTriangleIcon className="text-red-400" />
-                    </div>
-                    <p className="text-red-400 mb-2">Error</p>
-                    <p className="text-sm text-white/50 mb-4 max-w-xs">{error}</p>
-                    <button
-                      onClick={handleTryAnother}
-                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-                    >
-                      Try again
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-full text-white/40">
-                  <div className="text-center">
-                    <div className="w-16 h-16 rounded-full border-2 border-white/20 flex items-center justify-center mx-auto mb-3">
-                      <GlobeIcon />
-                    </div>
-                    <p>Enter a query to start</p>
-                    <p className="text-sm text-white/30 mt-1">Live browser view will appear here</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
 
-          {/* Right Panel: Events (40%) */}
-          <div className="lg:col-span-2 glass-panel p-4 h-[350px] lg:h-full">
-            <div className="flex items-center gap-2 mb-3 text-white/70 text-sm font-medium">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-              </svg>
-              <span>Session Events</span>
-            </div>
-            <div className="h-[calc(100%-40px)]">
-              <SessionEventsPanel
-                events={events}
-                sessionStatus={sessionStatus}
-                sessionOutput={sessionOutput}
+                {/* Quick examples */}
+                {status === 'idle' && (
+                  <div className="mt-8 animate-fadeIn" style={{ animationDelay: '0.3s' }}>
+                    <div className="text-center text-white/40 text-sm mb-4">Try an example</div>
+                    <div className="flex flex-wrap justify-center gap-3">
+                      {PARALLEL_QUERY_EXAMPLES.map((example, i) => (
+                        <button
+                          key={i}
+                          onClick={() => handleTryExample(example.query)}
+                          className="group glass-button px-4 py-3 rounded-xl transition-all hover:scale-[1.02] text-left max-w-xs"
+                        >
+                          <div className="text-white/90 text-sm font-medium mb-1">
+                            {example.query}
+                          </div>
+                          <div className="flex items-center gap-2 text-white/40 text-xs">
+                            <LayersIcon className="w-3 h-3" />
+                            {example.description}
+                            <span className="text-white/30">~{example.estimatedTime}s</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Progress View - The Orchestra */}
+            {showProgress && (
+              <div className="space-y-4 animate-fadeIn">
+                <div className="text-center mb-4">
+                  <h2 className="text-2xl font-bold text-white text-shadow-lg">
+                    Searching {progress.total} sites...
+                  </h2>
+                  <p className="text-white/60 mt-1">
+                    {parsedQuery?.goal} for {parsedQuery?.subject}
+                  </p>
+                </div>
+
+                <OrchestraProgress
+                  lanes={lanes}
+                  currentBest={currentBest || null}
+                  onStopEarly={() => {
+                    // Could implement early stop logic
+                  }}
+                  expanded={true}
+                />
+              </div>
+            )}
+
+            {/* Results View */}
+            {showResults && aggregatedResults && (
+              <div className="animate-fadeIn">
+                <ResultsAggregator
+                  results={aggregatedResults}
+                  synthesis={synthesis || null}
+                  nextActions={nextActions}
+                  onAction={handleAction}
+                />
+              </div>
+            )}
+          </div>
+        </main>
+
+        {/* Footer - subtle branding */}
+        <footer className="py-6 text-center">
+          <div className="flex items-center justify-center gap-2 text-white/30 text-sm">
+            <ZapIcon className="w-4 h-4" />
+            <span>Powered by TinyFish</span>
+          </div>
+        </footer>
+      </div>
+
+      {/* Floating action button for new search (when viewing results) */}
+      {showResults && (
+        <button
+          onClick={handleNewSearch}
+          className="fixed bottom-8 right-8 w-14 h-14 bg-blue-500 hover:bg-blue-600 rounded-full shadow-lg flex items-center justify-center transition-all transform hover:scale-110 animate-fadeIn"
+          style={{ animationDelay: '0.5s' }}
+        >
+          <RefreshIcon className="w-6 h-6 text-white" />
+        </button>
+      )}
+
+      {/* Feature highlights - shown on first visit */}
+      {showOnboarding && status === 'idle' && (
+        <div className="fixed bottom-0 left-0 right-0 pointer-events-none">
+          <div className="max-w-6xl mx-auto px-6 pb-20">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pointer-events-auto">
+              <FeatureCard
+                icon={<LayersIcon className="w-6 h-6" />}
+                title="Parallel Search"
+                description="Check multiple sites simultaneously, not one at a time"
+              />
+              <FeatureCard
+                icon={<SparklesIcon className="w-6 h-6" />}
+                title="Smart Synthesis"
+                description="Get answers, not just raw data from each site"
+              />
+              <FeatureCard
+                icon={<ZapIcon className="w-6 h-6" />}
+                title="Real-time Results"
+                description="See results flow in as each site responds"
               />
             </div>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+// Feature card component
+function FeatureCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="glass-panel p-4 flex items-start gap-3 animate-fadeIn hover:bg-white/10 transition-colors">
+      <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400 flex-shrink-0">
+        {icon}
+      </div>
+      <div>
+        <h3 className="text-white font-medium text-sm">{title}</h3>
+        <p className="text-white/50 text-xs mt-0.5">{description}</p>
       </div>
     </div>
   );
