@@ -2,14 +2,25 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { MinoLogo } from '@/components/icons/MinoLogo';
-import { QueryEnricher, OrchestraProgress, ResultsAggregator } from '@/components/ui';
-import { useOrchestrator } from '@/hooks';
+import { QueryEnricher, OrchestraProgress, ResultsAggregator, JobsBar } from '@/components/ui';
+import { useJobManager } from '@/hooks';
 import { PARALLEL_QUERY_EXAMPLES } from '@/types/orchestrator';
-import { SparklesIcon, ZapIcon, LayersIcon, RefreshIcon } from '@/components/icons';
+import { SparklesIcon, ZapIcon, LayersIcon, RefreshIcon, MinimizeIcon, PlusIcon } from '@/components/icons';
 
 export default function Home() {
   const [query, setQuery] = useState('');
   const [showOnboarding, setShowOnboarding] = useState(true);
+
+  const {
+    jobs,
+    activeJobId,
+    runningJobs,
+    orchestrator,
+    createJob,
+    switchToJob,
+    minimizeActiveJob,
+    removeJob,
+  } = useJobManager();
 
   const {
     status,
@@ -29,7 +40,7 @@ export default function Home() {
     toggleSite,
     execute,
     reset,
-  } = useOrchestrator();
+  } = orchestrator;
 
   // Hide onboarding once user starts interacting
   useEffect(() => {
@@ -38,15 +49,16 @@ export default function Home() {
     }
   }, [status]);
 
+  // Initialize first job if none exists
+  useEffect(() => {
+    if (jobs.length === 0) {
+      createJob();
+    }
+  }, [jobs.length, createJob]);
+
   const handleQueryChange = useCallback((newQuery: string) => {
     setQuery(newQuery);
   }, []);
-
-  const handleAnalyze = useCallback(() => {
-    if (query.trim().length >= 5) {
-      analyzeQuery(query);
-    }
-  }, [query, analyzeQuery]);
 
   const handleExecute = useCallback(async () => {
     if (selectedSites.length > 0) {
@@ -59,6 +71,17 @@ export default function Home() {
     reset();
     setShowOnboarding(true);
   }, [reset]);
+
+  const handleStartNewJob = useCallback(() => {
+    // Minimize current job if it's running
+    if (isRunning) {
+      minimizeActiveJob();
+    }
+    // Create a new job
+    createJob();
+    setQuery('');
+    setShowOnboarding(false);
+  }, [isRunning, minimizeActiveJob, createJob]);
 
   const handleAction = useCallback((action: { type: string; url?: string }) => {
     if (action.type === 'new_search') {
@@ -79,6 +102,9 @@ export default function Home() {
   const showProgress = status === 'running';
   const showResults = status === 'complete' || status === 'completing';
 
+  // Check if there are background jobs running
+  const hasBackgroundJobs = runningJobs.length > 0;
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Background effects */}
@@ -89,10 +115,20 @@ export default function Home() {
       <div className="content flex-1 flex flex-col">
         {/* MINO Header Logo */}
         <header
-          className="flex justify-center py-6 animate-fadeIn"
+          className="flex justify-center py-6 animate-fadeIn relative"
           style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.4))' }}
         >
           <MinoLogo />
+
+          {/* Background jobs indicator */}
+          {hasBackgroundJobs && (
+            <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-2">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/20 border border-blue-500/30 text-blue-300 text-sm">
+                <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                <span>{runningJobs.length} running in background</span>
+              </div>
+            </div>
+          )}
         </header>
 
         {/* Main content area */}
@@ -172,13 +208,24 @@ export default function Home() {
             {/* Progress View - The Orchestra */}
             {showProgress && (
               <div className="space-y-4 animate-fadeIn">
-                <div className="text-center mb-4">
-                  <h2 className="text-2xl font-bold text-white text-shadow-lg">
-                    Searching {progress.total} sites...
-                  </h2>
-                  <p className="text-white/60 mt-1">
-                    {parsedQuery?.goal} for {parsedQuery?.subject}
-                  </p>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="text-center flex-1">
+                    <h2 className="text-2xl font-bold text-white text-shadow-lg">
+                      Searching {progress.total} sites...
+                    </h2>
+                    <p className="text-white/60 mt-1">
+                      {parsedQuery?.goal} for {parsedQuery?.subject}
+                    </p>
+                  </div>
+
+                  {/* New search while this runs button */}
+                  <button
+                    onClick={handleStartNewJob}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-white/80 hover:text-white text-sm transition-all"
+                  >
+                    <PlusIcon className="w-4 h-4" />
+                    New search
+                  </button>
                 </div>
 
                 <OrchestraProgress
@@ -189,6 +236,21 @@ export default function Home() {
                   }}
                   expanded={true}
                 />
+
+                {/* Minimize button */}
+                <div className="flex justify-center">
+                  <button
+                    onClick={() => {
+                      minimizeActiveJob();
+                      createJob();
+                      setQuery('');
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 text-white/50 hover:text-white/70 text-sm transition-all"
+                  >
+                    <MinimizeIcon className="w-4 h-4" />
+                    Minimize and start new search
+                  </button>
+                </div>
               </div>
             )}
 
@@ -226,8 +288,17 @@ export default function Home() {
         </button>
       )}
 
+      {/* Jobs bar - shows minimized/completed jobs */}
+      <JobsBar
+        jobs={jobs}
+        activeJobId={activeJobId}
+        onSwitchToJob={switchToJob}
+        onRemoveJob={removeJob}
+        onNewJob={handleStartNewJob}
+      />
+
       {/* Feature highlights - shown on first visit */}
-      {showOnboarding && status === 'idle' && (
+      {showOnboarding && status === 'idle' && jobs.length <= 1 && (
         <div className="fixed bottom-0 left-0 right-0 pointer-events-none">
           <div className="max-w-6xl mx-auto px-6 pb-20">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pointer-events-auto">

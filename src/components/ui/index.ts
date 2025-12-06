@@ -5,3 +5,4 @@ export { SearchInput } from './SearchInput';
 export { QueryEnricher } from './QueryEnricher';
 export { OrchestraProgress } from './OrchestraProgress';
 export { ResultsAggregator } from './ResultsAggregator';
+export { JobsBar } from './JobsBar';
