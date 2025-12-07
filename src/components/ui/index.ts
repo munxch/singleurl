@@ -10,6 +10,7 @@ export { ExampleCards } from './ExampleCards';
 export { JobFeed } from './JobFeed';
 export { JobFeedItem } from './JobFeedItem';
 export { BottomNav } from './BottomNav';
+export { Navbar } from './Navbar';
 export { ConversationThread } from './ConversationThread';
 export { FollowUpSuggestions } from './FollowUpSuggestions';
 export { SearchThread } from './SearchThread';
