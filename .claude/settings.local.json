@@ -4,7 +4,9 @@
       "Bash(npm run build:*)",
       "Bash(AUTH_TOKEN='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1hcmlvQHRpbnlmaXNoLmlvIiwibmFtZSI6Ik1hcmlvIEVseXNpYW4iLCJwaWN0dXJlIjoiaHR0cHM6Ly9saDMuZ29vZ2xldXNlcmNvbnRlbnQuY29tL2EvQUNnOG9jSlhoSmkxamZpSTFUNnpsVER4VjlZSHlxOWlsVnlyU005U19LTjV5d1p0WnNuNFQyZz1zOTYtYyIsImV4cCI6MTc2NTA0Nzg2OH0.u6Th33uM2WaHJmbkYVdN91ReGa5TTkT9Wgr5pXk8uSA')",
       "Bash(__NEW_LINE__ curl -s -X POST \"https://aitinyfish.com/api/playground/runs\" )",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(wc:*)",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []
