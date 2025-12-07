@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { AccentColor, ACCENT_COLORS } from '../types';
+import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 
 interface SignUpOverlayProps {
   /** Whether the overlay is visible */
@@ -12,12 +12,6 @@ interface SignUpOverlayProps {
   title?: string;
   /** Subtitle text */
   subtitle?: string;
-  /** Icon/emoji to display */
-  icon?: string;
-  /** Accent color */
-  accentColor?: AccentColor;
-  /** Whether to show Apple sign-in option */
-  showApple?: boolean;
 }
 
 /**
@@ -26,23 +20,42 @@ interface SignUpOverlayProps {
 export function SignUpOverlay({
   isOpen,
   onClose,
-  title = 'Sign up for Mino',
+  title = 'Sign up for TinyFish',
   subtitle = 'Save your results, get alerts, and more',
-  icon = '🐟',
-  accentColor = 'amber',
-  showApple = true,
 }: SignUpOverlayProps) {
-  if (!isOpen) return null;
+  const [isVisible, setIsVisible] = useState(false);
+  const [shouldRender, setShouldRender] = useState(false);
 
-  const colors = ACCENT_COLORS[accentColor];
+  useEffect(() => {
+    if (isOpen) {
+      setShouldRender(true);
+      // Small delay to trigger animation
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setIsVisible(true);
+        });
+      });
+    } else {
+      setIsVisible(false);
+      // Wait for animation to complete before unmounting
+      const timer = setTimeout(() => setShouldRender(false), 200);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
+  if (!shouldRender) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        className={`absolute inset-0 bg-black/70 backdrop-blur-sm transition-opacity duration-200 ${
+          isVisible ? 'opacity-100' : 'opacity-0'
+        }`}
         onClick={onClose}
       />
-      <div className="relative w-full max-w-md p-6 rounded-2xl bg-[#0c1e38] border border-white/20 shadow-2xl">
+      <div className={`relative w-full max-w-md p-6 rounded-2xl bg-[#0c1e38] border border-white/20 shadow-2xl transition-all duration-200 ${
+        isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
+      }`}>
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-white/40 hover:text-white/70 transition-colors"
@@ -51,8 +64,14 @@ export function SignUpOverlay({
         </button>
 
         <div className="text-center mb-6">
-          <div className={`w-16 h-16 rounded-full ${colors.bgLight} flex items-center justify-center mx-auto mb-4`}>
-            <span className="text-3xl">{icon}</span>
+          <div className="w-16 h-16 rounded-2xl overflow-hidden mx-auto mb-4">
+            <Image
+              src="/tinyfish_ai_logo.jpeg"
+              alt="TinyFish"
+              width={64}
+              height={64}
+              className="w-full h-full object-cover"
+            />
           </div>
           <h2 className="text-xl font-semibold text-white">{title}</h2>
           <p className="text-white/50 text-sm mt-1">{subtitle}</p>
@@ -70,32 +89,12 @@ export function SignUpOverlay({
             Continue with Google
           </button>
 
-          {/* Apple OAuth */}
-          {showApple && (
-            <button className="w-full py-3 px-4 rounded-xl bg-white/10 text-white font-medium hover:bg-white/20 transition-colors flex items-center justify-center gap-2">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.23-.02-.3-.03-.01-.06-.04-.22-.04-.39 0-1.15.572-2.27 1.206-2.98.804-.94 2.142-1.64 3.248-1.68.03.13.05.28.05.43zm4.565 15.71c-.03.07-.463 1.58-1.518 3.12-.945 1.34-1.94 2.71-3.43 2.71-1.517 0-1.9-.88-3.63-.88-1.698 0-2.302.91-3.67.91-1.377 0-2.332-1.26-3.428-2.8-1.287-1.82-2.323-4.63-2.323-7.28 0-4.28 2.797-6.55 5.552-6.55 1.448 0 2.675.95 3.6.95.865 0 2.222-1.01 3.902-1.01.613 0 2.886.06 4.374 2.19-.13.09-2.383 1.37-2.383 4.19 0 3.26 2.854 4.42 2.955 4.45z"/>
-              </svg>
-              Continue with Apple
-            </button>
-          )}
-
-          <div className="relative py-3">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/10" />
-            </div>
-            <div className="relative flex justify-center">
-              <span className="px-3 bg-[#0c1e38] text-white/40 text-xs">or</span>
-            </div>
-          </div>
-
-          <input
-            type="email"
-            placeholder="Enter your email"
-            className={`w-full py-3 px-4 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-${accentColor}-500/50`}
-          />
-
-          <button className={`w-full py-3 px-4 rounded-xl ${colors.bg.replace('bg-', 'bg-').replace('-400', '-500')} text-white font-medium hover:opacity-90 transition-colors`}>
+          {/* Email */}
+          <button className="w-full py-3 px-4 rounded-xl bg-white/10 text-white font-medium hover:bg-white/15 transition-colors flex items-center justify-center gap-2 border border-white/10">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <rect width="20" height="16" x="2" y="4" rx="2"/>
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+            </svg>
             Continue with Email
           </button>
         </div>

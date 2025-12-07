@@ -13,6 +13,10 @@ import {
   ClockIcon,
   ChevronDownIcon,
   AlertTriangleIcon,
+  CalendarIcon,
+  BookmarkIcon,
+  ShareIcon,
+  MessageCircleIcon,
 } from '@/components/icons';
 import {
   BaseDemoLane,
@@ -604,10 +608,9 @@ export default function CarSearchCascadePage() {
   const selectedLane = lanes.find(l => l.id === selectedLaneId);
 
   const whatsNextActions = [
-    { icon: '🔄', label: 'New Search', onClick: startDemo },
-    { icon: '🔔', label: 'Price Alert', onClick: () => setShowSignUp(true) },
-    { icon: '💾', label: 'Save Results', onClick: () => setShowSignUp(true) },
-    { icon: '↗', label: 'Share', onClick: () => setShowSignUp(true) },
+    { icon: <CalendarIcon className="w-4 h-4" />, label: 'Schedule', subtitle: 'Monitor new inventory daily', onClick: () => setShowSignUp(true) },
+    { icon: <BookmarkIcon className="w-4 h-4" />, label: 'Save', subtitle: 'Keep for later', onClick: () => setShowSignUp(true) },
+    { icon: <ShareIcon className="w-4 h-4" />, label: 'Share', subtitle: 'Send link to anyone', onClick: () => setShowSignUp(true) },
   ];
 
   return (
@@ -615,9 +618,9 @@ export default function CarSearchCascadePage() {
       onRestart={startDemo}
       overlay={<SignUpOverlay isOpen={showSignUp} onClose={() => setShowSignUp(false)} accentColor="cyan" subtitle="Save your searches, get alerts, and more" />}
     >
-      <TimelineContainer showLine={isSearching || phase === 'complete'}>
+      <TimelineContainer>
         {/* Step 1: Query + Filters */}
-        <TimelineStep icon={<SparklesIcon className="w-3.5 h-3.5" />} isActive={phase === 'ready' || phase === 'idle'} isComplete={phase !== 'ready' && phase !== 'idle'} accentColor="cyan">
+        <TimelineStep icon={<SparklesIcon className="w-3.5 h-3.5" />} isActive={phase === 'ready' || phase === 'idle'} isComplete={phase !== 'ready' && phase !== 'idle'} accentColor="cyan" showConnector={isSearching || phase === 'complete'}>
           <div className="p-4 border-b border-white/10">
             <div className="text-white/50 text-xs uppercase tracking-wider mb-1">Searching</div>
             <div className="text-white text-lg">"{CAR_SEARCH_QUERY}"</div>
@@ -637,7 +640,7 @@ export default function CarSearchCascadePage() {
 
         {/* Step 2: Sources + Browser */}
         {(isSearching || phase === 'complete') && (
-          <TimelineStep icon={<SearchIcon className="w-3.5 h-3.5" />} isActive={isSearching} isComplete={phase === 'complete'} accentColor="cyan">
+          <TimelineStep icon={<SearchIcon className="w-3.5 h-3.5" />} isActive={isSearching} isComplete={phase === 'complete'} accentColor="cyan" showConnector={phase === 'complete'}>
             <button
               onClick={() => phase === 'complete' && setSourcesExpanded(!sourcesExpanded)}
               className={`w-full flex items-center justify-between px-4 py-3 ${sourcesExpanded ? 'border-b border-white/10' : ''} ${phase === 'complete' ? 'hover:bg-white/[0.02] cursor-pointer' : ''} transition-colors`}
@@ -684,7 +687,7 @@ export default function CarSearchCascadePage() {
 
         {/* Step 3: Results */}
         {phase === 'complete' && (
-          <TimelineResultStep ref={resultsRef} icon={<StarIcon className="w-3.5 h-3.5" />}>
+          <TimelineResultStep ref={resultsRef} icon={<StarIcon className="w-3.5 h-3.5" />} showConnector={true}>
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
               <span className="text-white/80 font-medium">Results</span>
               <span className="text-white/40 text-sm">{CAR_SEARCH_RESULTS.filter(r => r.status === 'success').length} matches found</span>
@@ -706,7 +709,20 @@ export default function CarSearchCascadePage() {
         {/* Step 4: What's Next */}
         {phase === 'complete' && (
           <TimelineFinalStep icon={<ArrowRightIcon className="w-3.5 h-3.5" />} animationDelay="200ms">
-            <div className="p-4"><WhatsNextLabel /><WhatsNextActions actions={whatsNextActions} /></div>
+            <div className="p-4">
+              <WhatsNextLabel />
+              <WhatsNextActions actions={whatsNextActions} />
+              {/* Follow-up action */}
+              <div className="flex justify-center mt-4 pt-4 border-t border-white/5">
+                <button
+                  onClick={() => setShowSignUp(true)}
+                  className="px-4 py-2 text-sm text-white/50 hover:text-white/80 transition-colors flex items-center gap-2"
+                >
+                  <MessageCircleIcon className="w-4 h-4" />
+                  <span>Ask a follow-up question</span>
+                </button>
+              </div>
+            </div>
           </TimelineFinalStep>
         )}
       </TimelineContainer>

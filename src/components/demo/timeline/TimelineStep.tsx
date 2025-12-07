@@ -13,8 +13,8 @@ interface TimelineStepProps {
   isComplete?: boolean;
   /** Accent color theme */
   accentColor?: AccentColor;
-  /** Whether this is the last step (no line below) */
-  isLast?: boolean;
+  /** Whether to show the connector line below this step */
+  showConnector?: boolean;
   /** Additional class names for the card */
   className?: string;
   /** Animation delay for fade-in (e.g., "200ms") */
@@ -32,7 +32,7 @@ export function TimelineStep({
   isActive,
   isComplete = false,
   accentColor = 'amber',
-  isLast = false,
+  showConnector = false,
   className = '',
   animationDelay,
   children,
@@ -57,7 +57,11 @@ export function TimelineStep({
     >
       {/* Timeline node */}
       <div className="relative z-10 flex-shrink-0">
-        <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center ${getNodeStyles()}`}>
+        {/* Pulsing glow for active state */}
+        {isActive && (
+          <div className={`absolute inset-0 w-7 h-7 rounded-full ${colors.bg} animate-ping opacity-40`} />
+        )}
+        <div className={`relative w-7 h-7 rounded-full border-2 flex items-center justify-center ${getNodeStyles()}`}>
           {isComplete && !isActive ? (
             <CheckIcon className="w-3.5 h-3.5 text-white/70" />
           ) : (
@@ -66,6 +70,10 @@ export function TimelineStep({
             </span>
           )}
         </div>
+        {/* Connector line to next step */}
+        {showConnector && (
+          <div className="absolute left-1/2 top-7 bottom-0 w-px -translate-x-1/2 bg-white/10 h-[calc(100%+24px)]" />
+        )}
       </div>
 
       {/* Card content */}
@@ -80,6 +88,7 @@ interface TimelineResultStepProps {
   icon: React.ReactNode;
   className?: string;
   animationDelay?: string;
+  showConnector?: boolean;
   children: React.ReactNode;
 }
 
@@ -88,7 +97,7 @@ interface TimelineResultStepProps {
  * Supports ref forwarding for scroll-to behavior.
  */
 export const TimelineResultStep = React.forwardRef<HTMLDivElement, TimelineResultStepProps>(
-  function TimelineResultStep({ icon, className = '', animationDelay, children }, ref) {
+  function TimelineResultStep({ icon, className = '', animationDelay, showConnector = false, children }, ref) {
     return (
       <div
         ref={ref}
@@ -100,6 +109,10 @@ export const TimelineResultStep = React.forwardRef<HTMLDivElement, TimelineResul
           <div className="w-7 h-7 rounded-full border-2 border-green-400 bg-green-400 flex items-center justify-center">
             <span className="text-white">{icon}</span>
           </div>
+          {/* Connector line to next step */}
+          {showConnector && (
+            <div className="absolute left-1/2 top-7 bottom-0 w-px -translate-x-1/2 bg-white/10 h-[calc(100%+24px)]" />
+          )}
         </div>
 
         {/* Card content */}

@@ -10,6 +10,10 @@ import {
   PhoneIcon,
   CheckIcon,
   ChevronDownIcon,
+  CalendarIcon,
+  BookmarkIcon,
+  ShareIcon,
+  MessageCircleIcon,
 } from '@/components/icons';
 import {
   // Types
@@ -154,7 +158,7 @@ function HeroResultCard({ onBook }: { onBook: () => void }) {
     <div className="space-y-5">
       {/* Image Grid */}
       <div className="grid grid-cols-4 gap-2 h-48">
-        <div className="col-span-2 row-span-2 rounded-xl overflow-hidden bg-gradient-to-br from-amber-900/40 to-slate-900 relative">
+        <div className="col-span-2 row-span-2 rounded-xl overflow-hidden bg-gradient-to-br from-cyan-900/40 to-slate-900 relative">
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center">
               <div className="text-5xl mb-2">🍝</div>
@@ -168,7 +172,7 @@ function HeroResultCard({ onBook }: { onBook: () => void }) {
             <div className="text-white/30 text-[10px]">Fresh Bread</div>
           </div>
         </div>
-        <div className="rounded-xl overflow-hidden bg-gradient-to-br from-amber-800/30 to-slate-900 flex items-center justify-center">
+        <div className="rounded-xl overflow-hidden bg-gradient-to-br from-cyan-800/30 to-slate-900 flex items-center justify-center">
           <div className="text-center">
             <div className="text-2xl">🍷</div>
             <div className="text-white/30 text-[10px]">Wine Bar</div>
@@ -194,7 +198,7 @@ function HeroResultCard({ onBook }: { onBook: () => void }) {
           <h1 className="text-2xl font-bold text-white">{result.restaurant.name}</h1>
           <div className="flex items-center gap-3 text-white/60 mt-1">
             <span className="flex items-center gap-1">
-              <StarIcon className="w-4 h-4 text-amber-400" />
+              <StarIcon className="w-4 h-4 text-cyan-400" />
               {result.restaurant.rating} ({result.restaurant.reviewCount})
             </span>
             <span>•</span>
@@ -204,7 +208,7 @@ function HeroResultCard({ onBook }: { onBook: () => void }) {
           </div>
         </div>
         <div className="text-right">
-          <div className="text-2xl font-bold text-amber-400">{synthesis.subtitle}</div>
+          <div className="text-2xl font-bold text-cyan-400">{synthesis.subtitle}</div>
           <div className="text-white/50 text-sm">Party of 2</div>
         </div>
       </div>
@@ -212,7 +216,7 @@ function HeroResultCard({ onBook }: { onBook: () => void }) {
       {/* Vibe Badges */}
       <div className="flex flex-wrap gap-2">
         {result.restaurant.vibe.map((v, i) => (
-          <span key={i} className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-sm flex items-center gap-1.5">
+          <span key={i} className="px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 text-sm flex items-center gap-1.5">
             <CheckIcon className="w-3.5 h-3.5" />
             {v}
           </span>
@@ -227,7 +231,7 @@ function HeroResultCard({ onBook }: { onBook: () => void }) {
         <ul className="space-y-2">
           {synthesis.rationale.map((reason, i) => (
             <li key={i} className="flex items-start gap-2 text-white/80">
-              <span className="text-amber-400 mt-0.5">•</span>
+              <span className="text-cyan-400 mt-0.5">•</span>
               {reason}
             </li>
           ))}
@@ -237,14 +241,14 @@ function HeroResultCard({ onBook }: { onBook: () => void }) {
       {/* Restaurant Card with Call + Reservation */}
       <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-4">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center text-xl">
+          <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center text-xl">
             🍽️
           </div>
           <div className="flex-1">
             <div className="text-white font-medium">{result.restaurant.name}</div>
             <div className="flex items-center gap-3 text-white/50 text-sm mt-1">
               <span className="flex items-center gap-1">
-                <StarIcon className="w-3.5 h-3.5 text-amber-400" />
+                <StarIcon className="w-3.5 h-3.5 text-cyan-400" />
                 {result.restaurant.rating} ({result.restaurant.reviewCount})
               </span>
               <span className="flex items-center gap-1">
@@ -272,7 +276,7 @@ function HeroResultCard({ onBook }: { onBook: () => void }) {
                   key={i}
                   className={`px-3 py-2 rounded-lg text-sm transition-colors ${
                     i === 1
-                      ? 'bg-amber-500 text-white'
+                      ? 'bg-cyan-500 text-white'
                       : 'bg-white/5 text-white/70 hover:bg-white/10 border border-white/10'
                   }`}
                 >
@@ -282,7 +286,7 @@ function HeroResultCard({ onBook }: { onBook: () => void }) {
             </div>
             <button
               onClick={onBook}
-              className="py-3 px-6 rounded-xl bg-amber-500 text-white font-semibold hover:bg-amber-400 transition-colors flex-shrink-0"
+              className="py-3 px-6 rounded-xl bg-cyan-500 text-white font-semibold hover:bg-cyan-400 transition-colors flex-shrink-0"
             >
               Reserve 7:00pm
             </button>
@@ -302,7 +306,7 @@ function AlternativeResultCard({ result, onBook }: { result: RestaurantResult; o
 
   return (
     <div className="w-56 flex-shrink-0 p-3 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.05] transition-colors">
-      <div className="w-full h-24 rounded-lg bg-gradient-to-br from-amber-900/20 to-slate-800 flex items-center justify-center mb-3">
+      <div className="w-full h-24 rounded-lg bg-gradient-to-br from-cyan-900/20 to-slate-800 flex items-center justify-center mb-3">
         <span className="text-3xl">🍝</span>
       </div>
       <div className="space-y-2">
@@ -311,7 +315,7 @@ function AlternativeResultCard({ result, onBook }: { result: RestaurantResult; o
           {result.restaurant.cuisine} • {formatPriceLevel(result.restaurant.priceLevel)}
         </div>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1 text-amber-400 text-sm">
+          <div className="flex items-center gap-1 text-cyan-400 text-sm">
             <StarIcon className="w-3 h-3" />
             {result.restaurant.rating}
           </div>
@@ -518,10 +522,9 @@ export default function DateNightCascadePage() {
   ];
 
   const whatsNextActions = [
-    { icon: '🔄', label: 'New Search', onClick: startDemo },
-    { icon: '🔔', label: 'Set Alert', onClick: () => setShowSignUp(true) },
-    { icon: '💾', label: 'Save Results', onClick: () => setShowSignUp(true) },
-    { icon: '↗', label: 'Share', onClick: () => setShowSignUp(true) },
+    { icon: <CalendarIcon className="w-4 h-4" />, label: 'Schedule', subtitle: 'Check for openings daily', onClick: () => setShowSignUp(true) },
+    { icon: <BookmarkIcon className="w-4 h-4" />, label: 'Save', subtitle: 'Keep for later', onClick: () => setShowSignUp(true) },
+    { icon: <ShareIcon className="w-4 h-4" />, label: 'Share', subtitle: 'Send link to anyone', onClick: () => setShowSignUp(true) },
   ];
 
   return (
@@ -531,18 +534,19 @@ export default function DateNightCascadePage() {
         <SignUpOverlay
           isOpen={showSignUp}
           onClose={() => setShowSignUp(false)}
-          accentColor="amber"
+          accentColor="cyan"
           subtitle="Save your reservations, get alerts, and more"
         />
       }
     >
-      <TimelineContainer showLine={isSearching || phase === 'complete'}>
+      <TimelineContainer>
         {/* Step 1: Query + Filters */}
         <TimelineStep
           icon={<SparklesIcon className="w-3.5 h-3.5" />}
           isActive={phase === 'ready' || phase === 'idle'}
           isComplete={phase !== 'ready' && phase !== 'idle'}
-          accentColor="amber"
+          accentColor="cyan"
+          showConnector={isSearching || phase === 'complete'}
         >
           <div className="p-4 border-b border-white/10">
             <div className="text-white/50 text-xs uppercase tracking-wider mb-1">Finding</div>
@@ -567,7 +571,8 @@ export default function DateNightCascadePage() {
             icon={<SearchIcon className="w-3.5 h-3.5" />}
             isActive={isSearching}
             isComplete={phase === 'complete'}
-            accentColor="amber"
+            accentColor="cyan"
+            showConnector={phase === 'complete'}
           >
             <button
               onClick={() => phase === 'complete' && setSourcesExpanded(!sourcesExpanded)}
@@ -593,7 +598,7 @@ export default function DateNightCascadePage() {
 
             {sourcesExpanded && (
               <SearchPanel
-                accentColor="amber"
+                accentColor="cyan"
                 agentThought={agentThought}
                 isSearching={isSearching}
                 totalSessions={lanes.length}
@@ -607,7 +612,7 @@ export default function DateNightCascadePage() {
                   completeOverlay: selectedLane.result?.restaurant ? (
                     <div className="text-center">
                       <p className="text-white font-bold text-xl">{selectedLane.result.restaurant.name}</p>
-                      <p className="text-amber-400 text-sm mt-1 flex items-center justify-center gap-1">
+                      <p className="text-cyan-400 text-sm mt-1 flex items-center justify-center gap-1">
                         <StarIcon className="w-4 h-4" />
                         {selectedLane.result.restaurant.rating} • {selectedLane.result.restaurant.availability.time}
                       </p>
@@ -621,7 +626,7 @@ export default function DateNightCascadePage() {
                   lanes={lanes}
                   selectedLaneId={selectedLaneId}
                   onSelectLane={setSelectedLaneId}
-                  accentColor="amber"
+                  accentColor="cyan"
                   hasResult={(lane) => !!lane.result?.restaurant}
                   getResultLabel={(lane) => lane.result?.restaurant ? 'Found 1' : 'No results'}
                 />
@@ -635,6 +640,7 @@ export default function DateNightCascadePage() {
           <TimelineResultStep
             ref={resultsRef}
             icon={<StarIcon className="w-3.5 h-3.5" />}
+            showConnector={true}
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
               <span className="text-white/80 font-medium">Results</span>
@@ -667,6 +673,16 @@ export default function DateNightCascadePage() {
             <div className="p-4">
               <WhatsNextLabel />
               <WhatsNextActions actions={whatsNextActions} />
+              {/* Follow-up action */}
+              <div className="flex justify-center mt-4 pt-4 border-t border-white/5">
+                <button
+                  onClick={() => setShowSignUp(true)}
+                  className="px-4 py-2 text-sm text-white/50 hover:text-white/80 transition-colors flex items-center gap-2"
+                >
+                  <MessageCircleIcon className="w-4 h-4" />
+                  <span>Ask a follow-up question</span>
+                </button>
+              </div>
             </div>
           </TimelineFinalStep>
         )}

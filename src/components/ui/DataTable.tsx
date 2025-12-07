@@ -79,17 +79,16 @@ export function ContactIndicators({
               e.stopPropagation();
               navigator.clipboard.writeText(email);
             }}
-            className={`flex items-center justify-center w-6 h-6 rounded transition-colors ${
-              emailVerified
-                ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                : 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
-            }`}
+            className="flex items-center justify-center w-6 h-6 rounded transition-colors bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
             title={emailVerified ? `Verified: ${email}` : `Unverified: ${email}`}
           >
             <MailIcon className="w-3.5 h-3.5" />
+            {emailVerified && (
+              <CheckIcon className="w-2 h-2 absolute -top-0.5 -right-0.5 text-white/60" />
+            )}
           </button>
         ) : (
-          <div className="flex items-center justify-center w-6 h-6 rounded bg-white/5 text-white/30">
+          <div className="flex items-center justify-center w-6 h-6 rounded bg-white/5 text-white/20">
             <MailIcon className="w-3.5 h-3.5" />
           </div>
         )}
@@ -103,13 +102,13 @@ export function ContactIndicators({
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center justify-center w-6 h-6 rounded bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 transition-colors"
+            className="flex items-center justify-center w-6 h-6 rounded transition-colors bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
             title={linkedIn}
           >
             <LinkedInIcon className="w-3.5 h-3.5" />
           </a>
         ) : (
-          <div className="flex items-center justify-center w-6 h-6 rounded bg-white/5 text-white/30">
+          <div className="flex items-center justify-center w-6 h-6 rounded bg-white/5 text-white/20">
             <LinkedInIcon className="w-3.5 h-3.5" />
           </div>
         )}
@@ -121,13 +120,13 @@ export function ContactIndicators({
           <a
             href={`tel:${phone}`}
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center justify-center w-6 h-6 rounded bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 transition-colors"
+            className="flex items-center justify-center w-6 h-6 rounded transition-colors bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
             title={phone}
           >
             <PhoneIcon className="w-3.5 h-3.5" />
           </a>
         ) : (
-          <div className="flex items-center justify-center w-6 h-6 rounded bg-white/5 text-white/30">
+          <div className="flex items-center justify-center w-6 h-6 rounded bg-white/5 text-white/20">
             <PhoneIcon className="w-3.5 h-3.5" />
           </div>
         )}
@@ -141,18 +140,18 @@ export function ContactIndicators({
 // =============================================================================
 
 export function CompanyTypeBadge({ type }: { type: string }) {
-  const typeConfig: Record<string, { emoji: string; label: string; color: string }> = {
-    hotel: { emoji: '🏨', label: 'Hotel', color: 'bg-blue-500/20 text-blue-400' },
-    restaurant_group: { emoji: '🍽️', label: 'Restaurant', color: 'bg-amber-500/20 text-amber-400' },
-    event_venue: { emoji: '🎪', label: 'Events', color: 'bg-purple-500/20 text-purple-400' },
-    catering: { emoji: '🍴', label: 'Catering', color: 'bg-rose-500/20 text-rose-400' },
-    resort: { emoji: '🏖️', label: 'Resort', color: 'bg-cyan-500/20 text-cyan-400' },
+  const typeConfig: Record<string, { emoji: string; label: string }> = {
+    hotel: { emoji: '🏨', label: 'Hotel' },
+    restaurant_group: { emoji: '🍽️', label: 'Restaurant' },
+    event_venue: { emoji: '🎪', label: 'Events' },
+    catering: { emoji: '🍴', label: 'Catering' },
+    resort: { emoji: '🏖️', label: 'Resort' },
   };
 
-  const config = typeConfig[type] || { emoji: '🏢', label: type, color: 'bg-white/10 text-white/60' };
+  const config = typeConfig[type] || { emoji: '🏢', label: type };
 
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs ${config.color}`}>
+    <span className="inline-flex items-center gap-1.5 text-xs text-white/50">
       <span>{config.emoji}</span>
       <span>{config.label}</span>
     </span>
@@ -221,7 +220,7 @@ export function DataTable<T>({
     >
       <table className="w-full border-collapse">
         <thead className={stickyHeader ? 'sticky top-0 z-10' : ''}>
-          <tr className="bg-[#0a1628]/95 backdrop-blur-sm border-b border-white/10">
+          <tr className="bg-white/[0.03] backdrop-blur-md border-b border-white/[0.06]">
             {showRowNumbers && (
               <th className="px-3 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider w-12">
                 #

@@ -15,6 +15,10 @@ import {
   AlertTriangleIcon,
   MailIcon,
   UsersIcon,
+  BellIcon,
+  CalendarIcon,
+  ShareIcon,
+  MessageCircleIcon,
 } from '@/components/icons';
 import {
   BaseDemoLane,
@@ -65,8 +69,7 @@ type DemoPhase = 'idle' | 'analyzing' | 'spawning_wave1' | 'running_wave1' | 'es
 // =============================================================================
 
 function NotifyMePopup({ isOpen, onClose, onSubmit }: { isOpen: boolean; onClose: () => void; onSubmit: () => void }) {
-  const [contactMethod, setContactMethod] = useState<'email' | 'phone'>('email');
-  const [value, setValue] = useState('');
+  const [email, setEmail] = useState('');
 
   if (!isOpen) return null;
 
@@ -76,19 +79,12 @@ function NotifyMePopup({ isOpen, onClose, onSubmit }: { isOpen: boolean; onClose
       <div className="relative w-full max-w-md p-6 rounded-2xl bg-[#0c1e38] border border-white/20 shadow-2xl animate-fadeIn">
         <button onClick={onClose} className="absolute top-4 right-4 text-white/40 hover:text-white/70 transition-colors">✕</button>
         <div className="text-center mb-5">
-          <div className="w-14 h-14 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-4"><span className="text-2xl">⏳</span></div>
-          <h2 className="text-xl font-semibold text-white">This search takes a bit longer</h2>
-          <p className="text-white/50 text-sm mt-2">We're enriching data from multiple sources. Leave your contact info and we'll notify you when your results are ready.</p>
+          <div className="w-14 h-14 rounded-full bg-cyan-500/20 flex items-center justify-center mx-auto mb-4"><span className="text-2xl">🔔</span></div>
+          <h2 className="text-xl font-semibold text-white">Get notified when ready</h2>
+          <p className="text-white/50 text-sm mt-2">We'll email you when your search results are ready.</p>
         </div>
-        <div className="flex gap-2 mb-4">
-          {(['email', 'phone'] as const).map(m => (
-            <button key={m} onClick={() => setContactMethod(m)} className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${contactMethod === m ? 'bg-emerald-500 text-white' : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10'}`}>
-              {m === 'email' ? <MailIcon className="w-4 h-4" /> : <span className="text-sm">📱</span>}{m === 'email' ? 'Email' : 'Phone'}
-            </button>
-          ))}
-        </div>
-        <input type={contactMethod === 'email' ? 'email' : 'tel'} placeholder={contactMethod === 'email' ? 'your@email.com' : '(555) 123-4567'} value={value} onChange={(e) => setValue(e.target.value)} className="w-full py-3 px-4 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-emerald-500/50 mb-4" />
-        <button onClick={() => { onSubmit(); onClose(); }} className="w-full py-3 px-4 rounded-xl bg-emerald-500 text-white font-semibold hover:bg-emerald-400 transition-colors">Notify Me</button>
+        <input type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full py-3 px-4 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-cyan-500/50 mb-4" />
+        <button onClick={() => { onSubmit(); onClose(); }} className="w-full py-3 px-4 rounded-xl bg-cyan-500 text-white font-semibold hover:bg-cyan-400 transition-colors">Notify Me</button>
         <button onClick={onClose} className="w-full mt-3 py-2 px-4 text-white/50 text-sm hover:text-white/70 transition-colors">I'll wait for results</button>
       </div>
     </div>
@@ -106,18 +102,18 @@ function CFOSourceRow({ lane, isSelected, onClick }: { lane: DemoLane; isSelecte
       case 'paywalled': return <LockIcon className="w-4 h-4 text-amber-400/70" />;
       case 'partial': return <AlertTriangleIcon className="w-4 h-4 text-amber-400/70" />;
       case 'pending': return <div className="w-3 h-3 rounded-full border-2 border-white/20" />;
-      default: return <LoaderIcon className="w-4 h-4 animate-spin text-emerald-400/70" />;
+      default: return <LoaderIcon className="w-4 h-4 animate-spin text-cyan-400/70" />;
     }
   };
 
   return (
-    <button onClick={onClick} className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all overflow-hidden ${isSelected ? 'ring-1 ring-emerald-400/50' : 'hover:bg-white/[0.03]'}`}>
+    <button onClick={onClick} className={`relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all overflow-hidden ${isSelected ? 'ring-1 ring-cyan-400/50' : 'hover:bg-white/[0.03]'}`}>
       <div className="absolute inset-0 bg-white/[0.04] transition-all duration-500" style={{ width: `${lane.progress}%` }} />
       <div className="relative flex items-center gap-3 w-full">
         {getStatusIcon()}
         <span className="flex-1 text-sm text-white/80 truncate">{lane.site}</span>
         {(lane.status === 'complete' || lane.status === 'partial') && lane.resultsFound > 0 && (
-          <span className={`text-sm tabular-nums ${lane.status === 'partial' ? 'text-amber-400/80' : 'text-emerald-400/80'}`}>{lane.resultsFound} found</span>
+          <span className={`text-sm tabular-nums ${lane.status === 'partial' ? 'text-amber-400/80' : 'text-cyan-400/80'}`}>{lane.resultsFound} found</span>
         )}
       </div>
     </button>
@@ -181,12 +177,22 @@ function CFOResultsTable({ onOpenSignup }: { onOpenSignup: () => void }) {
   ];
 
   return (
-    <div className="glass-card overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-        <div className="flex items-center gap-3"><span className="text-lg">🎯</span><span className="text-white/80 font-medium">{CFO_SEARCH_SYNTHESIS.headline}</span></div>
-        <span className="text-white/40 text-sm">{CFO_SEARCH_SYNTHESIS.subtitle}</span>
+    <div className="overflow-hidden">
+      {/* Summary message */}
+      <div className="px-4 py-3">
+        <p className="text-white/60 text-sm">
+          Found <span className="text-white font-medium">{CFO_SEARCH_SYNTHESIS.stats.totalFound} CFOs</span> at hospitality companies in the DFW area. <span className="text-cyan-400">{CFO_SEARCH_SYNTHESIS.stats.emailsVerified}</span> have verified emails.
+        </p>
       </div>
-      <TableStatsBar stats={tableStats} />
+      {/* Stats - inline and subtle */}
+      <div className="flex items-center gap-4 px-4 pb-3 text-xs text-white/40">
+        {tableStats.map((stat, i) => (
+          <span key={i} className="flex items-center gap-1.5">
+            <span className={stat.color || 'text-white/30'}>{stat.icon}</span>
+            <span>{stat.value} {stat.label.toLowerCase()}</span>
+          </span>
+        ))}
+      </div>
       <DataTable data={CFO_SEARCH_RESULTS} columns={columns} keyExtractor={(row) => row.id} maxHeight="400px" showRowNumbers={true} />
       <TableActionsBar actions={tableActions} />
     </div>
@@ -199,11 +205,11 @@ function CFOResultsTable({ onOpenSignup }: { onOpenSignup: () => void }) {
 
 function InsightsPanel() {
   return (
-    <div className="glass-card p-4">
-      <div className="text-white/50 text-xs uppercase tracking-wider mb-3 font-medium">Insights</div>
-      <ul className="space-y-2">
+    <div className="px-4 py-3 border-t border-white/10">
+      <div className="text-white/40 text-xs uppercase tracking-wider mb-2 font-medium">Insights</div>
+      <ul className="space-y-1.5">
         {CFO_SEARCH_SYNTHESIS.insights.map((insight, i) => (
-          <li key={i} className="flex items-start gap-2 text-white/70 text-sm"><span className="text-emerald-400 mt-0.5">•</span>{insight}</li>
+          <li key={i} className="flex items-start gap-2 text-white/60 text-sm"><span className="text-cyan-400 mt-0.5">•</span>{insight}</li>
         ))}
       </ul>
     </div>
@@ -448,24 +454,23 @@ export default function CFOSearchCascadePage() {
 
   useEffect(() => { const timer = setTimeout(startDemo, 500); return () => clearTimeout(timer); }, [startDemo]);
   useEffect(() => { if (phase === 'complete' && resultsRef.current) setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300); }, [phase]);
-  useEffect(() => { if (phase === 'running_wave2' && !notifySubmitted) { const timer = setTimeout(() => setShowNotifyPopup(true), 2500); return () => clearTimeout(timer); } }, [phase, notifySubmitted]);
+  // Notify popup is now triggered by bell button click, not auto-popup
 
   const totalComplete = lanes.filter(l => ['complete', 'paywalled', 'partial'].includes(l.status)).length;
   const isRunning = phase !== 'idle' && phase !== 'complete';
   const selectedLane = lanes.find(l => l.id === selectedLaneId);
 
   const whatsNextActions = [
-    { icon: '🔄', label: 'New Search', onClick: startDemo },
-    { icon: '🔔', label: 'Watch for Hires', onClick: () => setShowSignupModal(true) },
-    { icon: '📤', label: 'Export to CRM', onClick: () => setShowSignupModal(true) },
-    { icon: '↗', label: 'Share', onClick: () => setShowSignupModal(true) },
+    { icon: <CalendarIcon className="w-4 h-4" />, label: 'Schedule', subtitle: 'Run this search daily', onClick: () => setShowSignupModal(true) },
+    { icon: <UploadIcon className="w-4 h-4" />, label: 'Export', subtitle: 'Send to your tools', onClick: () => setShowSignupModal(true) },
+    { icon: <ShareIcon className="w-4 h-4" />, label: 'Share', subtitle: 'Send link to anyone', onClick: () => setShowSignupModal(true) },
   ];
 
   return (
     <DemoLayout onRestart={startDemo}>
-      <TimelineContainer showLine={phase !== 'idle' && phase !== 'analyzing'}>
+      <TimelineContainer>
         {/* Step 1: Query */}
-        <TimelineStep icon={<SparklesIcon className="w-3.5 h-3.5" />} isActive={phase === 'idle' || phase === 'analyzing'} isComplete={phase !== 'idle' && phase !== 'analyzing'} accentColor="emerald">
+        <TimelineStep icon={<SparklesIcon className="w-3.5 h-3.5" />} isActive={phase === 'idle' || phase === 'analyzing'} isComplete={phase !== 'idle' && phase !== 'analyzing'} accentColor="cyan" showConnector={phase !== 'idle' && phase !== 'analyzing'}>
           <div className="p-4">
             <div className="text-white/50 text-xs uppercase tracking-wider mb-1">Searching</div>
             <div className="text-white text-lg">"{CFO_SEARCH_QUERY}"</div>
@@ -474,24 +479,32 @@ export default function CFOSearchCascadePage() {
 
         {/* Step 2: Sources + Browser */}
         {phase !== 'idle' && phase !== 'analyzing' && (
-          <TimelineStep icon={<SearchIcon className="w-3.5 h-3.5" />} isActive={isRunning} isComplete={phase === 'complete'} accentColor="emerald">
-            <button
-              onClick={() => phase === 'complete' && setSourcesExpanded(!sourcesExpanded)}
-              className={`w-full flex items-center justify-between px-4 py-3 ${sourcesExpanded ? 'border-b border-white/10' : ''} ${phase === 'complete' ? 'hover:bg-white/[0.02] cursor-pointer' : ''} transition-colors`}
-            >
-              <div className="flex items-center gap-3">
+          <TimelineStep icon={<SearchIcon className="w-3.5 h-3.5" />} isActive={isRunning} isComplete={phase === 'complete'} accentColor="cyan" showConnector={phase === 'complete'}>
+            <div className={`flex items-center justify-between px-4 py-3 ${sourcesExpanded ? 'border-b border-white/10' : ''}`}>
+              <button
+                onClick={() => phase === 'complete' && setSourcesExpanded(!sourcesExpanded)}
+                className={`flex items-center gap-3 ${phase === 'complete' ? 'hover:opacity-80 cursor-pointer' : ''} transition-opacity`}
+              >
                 <span className="text-white/80 font-medium">{phase === 'complete' ? 'Search Complete' : 'Searching Sources'}</span>
                 {!sourcesExpanded && phase === 'complete' && <span className="text-white/40 text-sm">• {lanes.length} sources checked • {lanes.reduce((acc, l) => acc + l.resultsFound, 0)} contacts found</span>}
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-white/40 text-sm">{totalComplete} of {lanes.length}</span>
                 {phase === 'complete' && <ChevronDownIcon className={`w-4 h-4 text-white/40 transition-transform ${sourcesExpanded ? 'rotate-180' : ''}`} />}
+              </button>
+              <div className="flex items-center gap-2">
+                {isRunning && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowNotifyPopup(true); }}
+                    className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/50 hover:text-white/80 transition-colors"
+                    title="Get notified when ready"
+                  >
+                    <BellIcon className="w-4 h-4" />
+                  </button>
+                )}
               </div>
-            </button>
+            </div>
 
             {sourcesExpanded && (
               <SearchPanel
-                accentColor="emerald"
+                accentColor="cyan"
                 sourcesWidth="w-72"
                 agentThought={agentThought}
                 totalSessions={lanes.length}
@@ -517,10 +530,14 @@ export default function CFOSearchCascadePage() {
 
         {/* Step 3: Results */}
         {phase === 'complete' && (
-          <TimelineResultStep ref={resultsRef} icon={<StarIcon className="w-3.5 h-3.5" />}>
-            <div className="p-4 space-y-6">
-              <CFOResultsTable onOpenSignup={() => setShowSignupModal(true)} />
-              <InsightsPanel />
+          <TimelineResultStep ref={resultsRef} icon={<StarIcon className="w-3.5 h-3.5" />} showConnector={true}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+              <span className="text-white/80 font-medium">Results</span>
+              <span className="text-white/40 text-sm">{CFO_SEARCH_SYNTHESIS.stats.totalFound} contacts found</span>
+            </div>
+            <CFOResultsTable onOpenSignup={() => setShowSignupModal(true)} />
+            <InsightsPanel />
+            <div className="p-4 pt-2">
               <NewHireAlertSetup />
             </div>
           </TimelineResultStep>
@@ -529,7 +546,20 @@ export default function CFOSearchCascadePage() {
         {/* Step 4: What's Next */}
         {phase === 'complete' && (
           <TimelineFinalStep icon={<ArrowRightIcon className="w-3.5 h-3.5" />} animationDelay="200ms">
-            <div className="p-4"><WhatsNextLabel /><WhatsNextActions actions={whatsNextActions} /></div>
+            <div className="p-4">
+              <WhatsNextLabel />
+              <WhatsNextActions actions={whatsNextActions} />
+              {/* Follow-up action */}
+              <div className="flex justify-center mt-4 pt-4 border-t border-white/5">
+                <button
+                  onClick={() => setShowSignupModal(true)}
+                  className="px-4 py-2 text-sm text-white/50 hover:text-white/80 transition-colors flex items-center gap-2"
+                >
+                  <MessageCircleIcon className="w-4 h-4" />
+                  <span>Ask a follow-up question</span>
+                </button>
+              </div>
+            </div>
           </TimelineFinalStep>
         )}
       </TimelineContainer>

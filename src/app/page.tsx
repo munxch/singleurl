@@ -21,50 +21,58 @@ interface ExampleCard {
 
 // Demo route mapping - queries that have dedicated demo experiences
 const DEMO_ROUTES: Record<string, string> = {
-  'date night tonight in dallas, nice italian, 7pm for 2': '/demo/date-night-cascade',
-  'used honda civic under $25k with apple carplay': '/demo/car-search-cascade',
+  'find me a nice italian spot in dallas for date night tonight, 7pm for 2': '/demo/date-night-cascade',
+  'search for a used honda civic under $25k with apple carplay': '/demo/car-search-cascade',
+  'find me cfos at hospitality companies in dfw': '/demo/cfo-search-cascade',
 };
 
 const FEATURED_EXAMPLES: ExampleCard[] = [
   {
     id: 'date-night',
-    title: 'Find a Date Night Spot',
-    query: 'Date night tonight in Dallas, nice Italian, 7pm for 2',
+    title: 'Snag a dinner reservation',
+    query: 'Find me a nice Italian spot in Dallas for date night tonight, 7pm for 2',
     emoji: '🍝',
     gradient: 'from-blue-500/30 to-cyan-500/20',
   },
   {
     id: 'used-car',
-    title: 'Search Car Inventory',
-    query: 'Used Honda Civic under $25k with Apple CarPlay',
+    title: 'Find the perfect car in budget',
+    query: 'Search for a used Honda Civic under $25k with Apple CarPlay',
     emoji: '🚗',
     gradient: 'from-blue-500/30 to-cyan-500/20',
   },
   {
+    id: 'cfo-search',
+    title: 'Find leads for outreach',
+    query: 'Find me CFOs at hospitality companies in DFW',
+    emoji: '💼',
+    gradient: 'from-blue-500/30 to-cyan-500/20',
+  },
+  {
     id: 'price-check',
-    title: 'Price Check Electronics',
-    query: 'Find the best price for AirPods Pro 2',
+    title: 'Get the best deal online',
+    query: 'Find me the best price for AirPods Pro 2',
     emoji: '🎧',
     gradient: 'from-blue-500/30 to-cyan-500/20',
   },
   {
     id: 'flights',
-    title: 'Search for Flights',
-    query: 'Flights from SF to Tokyo in March',
+    title: 'Book your next trip',
+    query: 'Search for flights from SF to Tokyo in March',
     emoji: '✈️',
     gradient: 'from-blue-500/30 to-cyan-500/20',
   },
   {
     id: 'contractors',
-    title: 'Find Local Services',
-    query: 'HVAC contractors in Austin with good reviews',
+    title: 'Hire a trusted pro',
+    query: 'Find me HVAC contractors in Austin with good reviews',
     emoji: '🔧',
     gradient: 'from-blue-500/30 to-cyan-500/20',
   },
   {
     id: 'hotels',
-    title: 'Book a Hotel',
-    query: 'Hotels in NYC for New Years under $300/night',
+    title: 'Find the perfect stay',
+    query: 'Search for hotels in NYC for New Years under $300/night',
     emoji: '🏨',
     gradient: 'from-blue-500/30 to-cyan-500/20',
   },
@@ -78,12 +86,15 @@ function ExampleItem({ card, onClick }: { card: ExampleCard; onClick: () => void
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-white/[0.12] transition-all group"
+      className="w-full flex items-start gap-3 px-4 py-3 rounded-xl text-left bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-white/[0.12] transition-all group"
     >
-      <span className="text-lg flex-shrink-0">{card.emoji}</span>
-      <span className="text-white/70 text-sm truncate flex-1">{card.query}</span>
-      <span className="text-white/30 text-xs opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-        Use
+      <span className="text-lg flex-shrink-0 mt-0.5">{card.emoji}</span>
+      <div className="flex-1 min-w-0">
+        <div className="text-white font-medium text-sm">{card.title}</div>
+        <div className="text-white/40 text-xs truncate mt-0.5">{card.query}</div>
+      </div>
+      <span className="text-white/30 text-xs opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-1">
+        Try
       </span>
     </button>
   );
@@ -210,7 +221,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Demo Showcase - See the workflow in action */}
+          {/* Demo Showcase - See the workflow in action (hidden for now)
           <div className="mb-8 animate-fadeInUp" style={{ animationDelay: '100ms' }}>
             <div className="text-white/40 text-xs uppercase tracking-wider mb-3 px-1">
               See it in action
@@ -238,7 +249,7 @@ export default function Home() {
               </Link>
               <Link
                 href="/demo/cfo-search-cascade"
-                className="group p-4 rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border border-white/[0.08] hover:border-emerald-500/30 hover:bg-emerald-500/15 transition-all"
+                className="group p-4 rounded-xl bg-gradient-to-br from-cyan-500/10 to-blue-500/5 border border-white/[0.08] hover:border-cyan-500/30 hover:bg-cyan-500/15 transition-all"
               >
                 <div className="mb-2">
                   <span className="text-2xl">💼</span>
@@ -248,6 +259,7 @@ export default function Home() {
               </Link>
             </div>
           </div>
+          */}
 
           {/* Featured Examples - stacked list */}
           <div className="flex flex-col gap-2 mb-6 animate-fadeInUp" style={{ animationDelay: '150ms' }}>

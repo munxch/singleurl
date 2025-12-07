@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { XIcon } from '@/components/icons';
 
 interface SignupModalProps {
@@ -39,6 +40,15 @@ export function SignupModal({
         <div className="p-8">
           {/* Header */}
           <div className="text-center mb-8">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl overflow-hidden">
+              <Image
+                src="/tinyfish_ai_logo.jpeg"
+                alt="TinyFish"
+                width={64}
+                height={64}
+                className="w-full h-full object-cover"
+              />
+            </div>
             <h2 className="text-2xl font-bold text-white mb-2">{title}</h2>
             <p className="text-white/60 text-sm">{subtitle}</p>
           </div>
