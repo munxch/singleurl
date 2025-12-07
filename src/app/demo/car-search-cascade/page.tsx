@@ -16,11 +16,12 @@ import {
 } from '@/components/icons';
 import {
   BaseDemoLane,
+  AgentThought,
   TimelineContainer,
   TimelineStep,
   TimelineResultStep,
   TimelineFinalStep,
-  BrowserWindow,
+  SearchPanel,
   SearchFiltersWrapper,
   FilterLabel,
   FilterOption,
@@ -389,6 +390,7 @@ export default function CarSearchCascadePage() {
   const [sourcesExpanded, setSourcesExpanded] = useState(true);
   const [isThinking, setIsThinking] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [agentThought, setAgentThought] = useState<AgentThought | null>(null);
   const [filters, setFilters] = useState<CarSearchFilters>({ condition: 'used', maxMileage: '50k', color: 'any', zipcode: '75201' });
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -416,6 +418,7 @@ export default function CarSearchCascadePage() {
     setSourcesExpanded(true);
     setShowFilters(false);
     setIsThinking(true);
+    setAgentThought(null);
     setTimeout(() => { setIsThinking(false); setShowFilters(true); }, 1500);
   }, []);
 
@@ -423,25 +426,85 @@ export default function CarSearchCascadePage() {
     setFiltersExpanded(false);
     setPhase('analyzing');
 
+    // Initial planning thought
+    setAgentThought({
+      type: 'planning',
+      message: "Starting with CarGurus and Carvana — they have the largest used inventory in Texas.",
+      reasoning: 'Aggregators first, then direct dealers if needed'
+    });
+
     setTimeout(() => {
       setPhase('spawning_wave1');
-      const wave1: DemoLane[] = WAVE1_LANES.map(l => ({ ...l, status: 'spawning' as LaneStatus, progress: 0, currentAction: 'Starting browser...' }));
+      const wave1: DemoLane[] = WAVE1_LANES.map(l => ({ ...l, status: 'spawning' as LaneStatus, progress: 0, currentAction: 'Connecting...' }));
       setLanes(wave1);
       setSelectedLaneId(wave1[0].id);
 
+      setAgentThought({
+        type: 'executing',
+        message: 'Searching 6 major car marketplaces simultaneously...',
+        reasoning: 'Comparing prices, mileage, and dealer ratings in real-time'
+      });
+
       setTimeout(() => {
         setPhase('running_wave1');
+
+        // Wave 1 thought sequence (slower pacing for readability)
+        const wave1Thoughts: { delay: number; thought: AgentThought }[] = [
+          {
+            delay: 2000,
+            thought: {
+              type: 'analyzing',
+              message: 'CarGurus showing 12 Civics in your area. Filtering by mileage and CarPlay...',
+            }
+          },
+          {
+            delay: 5000,
+            thought: {
+              type: 'analyzing',
+              message: 'Found a 2022 EX-L at $23,900 with 28k miles — checking Carfax history...',
+              reasoning: 'Verifying no accidents, single owner preferred'
+            }
+          },
+          {
+            delay: 8000,
+            thought: {
+              type: 'adapting',
+              message: 'Carvana blocked my automated search. Pivoting to check dealer sites directly.',
+              reasoning: 'Some sites require manual browsing — working around it'
+            }
+          },
+          {
+            delay: 11000,
+            thought: {
+              type: 'analyzing',
+              message: 'AutoTrader has 3 options under $25k. One CPO with warranty included...',
+            }
+          },
+          {
+            delay: 14000,
+            thought: {
+              type: 'planning',
+              message: 'Wave 1 complete. Checking local Honda dealers for better CPO options...',
+              reasoning: 'Direct dealer inventory often has better financing'
+            }
+          },
+        ];
+
+        wave1Thoughts.forEach(({ delay, thought }) => {
+          setTimeout(() => setAgentThought(thought), delay);
+        });
+
         wave1.forEach((lane, i) => {
           const mockResult = getMockResult(lane.id);
           const isBlocked = mockResult?.status === 'blocked';
           const baseDelay = 200 + (i * 600);
 
-          setTimeout(() => updateLane(lane.id, { status: 'navigating', progress: 25, currentAction: 'Navigating to search...' }), baseDelay);
+          setTimeout(() => updateLane(lane.id, { status: 'navigating', progress: 25, currentAction: 'Searching...' }), baseDelay);
 
           if (isBlocked) {
             setTimeout(() => updateLane(lane.id, { status: 'blocked', progress: 40, result: mockResult }), baseDelay + 2500);
           } else {
-            setTimeout(() => updateLane(lane.id, { status: 'extracting', progress: 60, currentAction: 'Searching inventory...' }), baseDelay + 1800);
+            setTimeout(() => updateLane(lane.id, { status: 'extracting', progress: 60, currentAction: 'Extracting...' }), baseDelay + 1800);
             setTimeout(() => {
               updateLane(lane.id, { status: 'complete', progress: 100, result: mockResult });
               if (mockResult?.status === 'success' && mockResult.car) {
@@ -462,17 +525,54 @@ export default function CarSearchCascadePage() {
     if (phase === 'escalation_message') {
       setTimeout(() => {
         setPhase('spawning_wave2');
-        const wave2: DemoLane[] = WAVE2_LANES.map(l => ({ ...l, status: 'spawning' as LaneStatus, progress: 0, currentAction: 'Starting browser...' }));
+        const wave2: DemoLane[] = WAVE2_LANES.map(l => ({ ...l, status: 'spawning' as LaneStatus, progress: 0, currentAction: 'Connecting...' }));
         setLanes(prev => [...prev, ...wave2]);
         setSelectedLaneId(wave2[0].id);
 
+        setAgentThought({
+          type: 'executing',
+          message: 'Checking 4 local Honda dealers for fresh inventory...',
+          reasoning: 'Dealer sites often have cars not yet on aggregators'
+        });
+
         setTimeout(() => {
           setPhase('running_wave2');
+
+          // Wave 2 thought sequence (slower pacing for readability)
+          const wave2Thoughts: { delay: number; thought: AgentThought }[] = [
+            {
+              delay: 2000,
+              thought: {
+                type: 'analyzing',
+                message: 'Honda of Dallas has a 2023 Sport with 15k miles — best mileage so far!',
+              }
+            },
+            {
+              delay: 5500,
+              thought: {
+                type: 'analyzing',
+                message: 'Park Place has CPO warranty included. Calculating total cost of ownership...',
+                reasoning: 'CPO adds ~$2k value in warranty coverage'
+              }
+            },
+            {
+              delay: 9000,
+              thought: {
+                type: 'success',
+                message: 'Found 8 matching vehicles. Ranking by price, mileage, and dealer reputation...',
+              }
+            },
+          ];
+
+          wave2Thoughts.forEach(({ delay, thought }) => {
+            setTimeout(() => setAgentThought(thought), delay);
+          });
+
           wave2.forEach((lane, i) => {
             const mockResult = getMockResult(lane.id);
             const baseDelay = 400 + (i * 500);
-            setTimeout(() => updateLane(lane.id, { status: 'navigating', progress: 30, currentAction: 'Navigating to dealer...' }), baseDelay);
-            setTimeout(() => updateLane(lane.id, { status: 'extracting', progress: 65, currentAction: 'Checking inventory...' }), baseDelay + 1200);
+            setTimeout(() => updateLane(lane.id, { status: 'navigating', progress: 30, currentAction: 'Searching...' }), baseDelay);
+            setTimeout(() => updateLane(lane.id, { status: 'extracting', progress: 65, currentAction: 'Extracting...' }), baseDelay + 1200);
             setTimeout(() => {
               updateLane(lane.id, { status: 'complete', progress: 100, result: mockResult });
               if (mockResult?.status === 'success' && mockResult.car) {
@@ -480,7 +580,17 @@ export default function CarSearchCascadePage() {
               }
             }, baseDelay + 2400);
           });
-          setTimeout(() => { setPhase('synthesizing'); setTimeout(() => setPhase('complete'), 1200); }, 4500);
+          setTimeout(() => {
+            setPhase('synthesizing');
+            setAgentThought({
+              type: 'analyzing',
+              message: 'Comparing 8 vehicles across price, condition, and dealer ratings...',
+            });
+            setTimeout(() => {
+              setPhase('complete');
+              setAgentThought(null);
+            }, 1200);
+          }, 4500);
         }, 600);
       }, 2000);
     }
@@ -545,36 +655,29 @@ export default function CarSearchCascadePage() {
             </button>
 
             {sourcesExpanded && (
-              <div className="flex" style={{ height: '55vh', maxHeight: '500px' }}>
-                <div className="w-72 p-4 border-r border-white/10 overflow-y-auto">
-                  <CarSourcesList lanes={lanes} selectedLaneId={selectedLaneId} onSelectLane={setSelectedLaneId} showEscalation={showEscalation} zipcode={filters.zipcode} />
-                </div>
-                <div className="flex-1 relative overflow-hidden">
-                  {selectedLane ? (
-                    <BrowserWindow
-                      domain={selectedLane.domain}
-                      status={selectedLane.status}
-                      currentAction={selectedLane.currentAction}
-                      accentColor="cyan"
-                      siteIcon={selectedLane.wave === 2 ? '🏢' : '🚗'}
-                      siteName={selectedLane.site}
-                      siteSubtitle="Inventory search"
-                      completeOverlay={
-                        selectedLane.result?.car ? (
-                          <div className="text-center">
-                            <p className="text-white font-bold text-xl">{formatPrice(selectedLane.result.car.price)}</p>
-                            <p className="text-white/50 text-sm mt-1">{selectedLane.result.car.year} {selectedLane.result.car.model}</p>
-                          </div>
-                        ) : <p className="text-white/40 text-sm">{selectedLane.result?.statusMessage || 'No results'}</p>
-                      }
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-[#0f0f1a]">
-                      <div className="text-center"><LoaderIcon className="w-6 h-6 text-cyan-400/60 animate-spin mx-auto mb-2" /><p className="text-white/40 text-sm">Starting...</p></div>
+              <SearchPanel
+                accentColor="cyan"
+                sourcesWidth="w-72"
+                agentThought={agentThought}
+                totalSessions={lanes.length}
+                isSearching={isSearching}
+                browser={selectedLane ? {
+                  domain: selectedLane.domain,
+                  status: selectedLane.status,
+                  currentAction: selectedLane.currentAction,
+                  siteIcon: selectedLane.wave === 2 ? '🏢' : '🚗',
+                  siteName: selectedLane.site,
+                  siteSubtitle: 'Inventory search',
+                  completeOverlay: selectedLane.result?.car ? (
+                    <div className="text-center">
+                      <p className="text-white font-bold text-xl">{formatPrice(selectedLane.result.car.price)}</p>
+                      <p className="text-white/50 text-sm mt-1">{selectedLane.result.car.year} {selectedLane.result.car.model}</p>
                     </div>
-                  )}
-                </div>
-              </div>
+                  ) : <p className="text-white/40 text-sm">{selectedLane.result?.statusMessage || 'No results'}</p>
+                } : null}
+              >
+                <CarSourcesList lanes={lanes} selectedLaneId={selectedLaneId} onSelectLane={setSelectedLaneId} showEscalation={showEscalation} zipcode={filters.zipcode} />
+              </SearchPanel>
             )}
           </TimelineStep>
         )}

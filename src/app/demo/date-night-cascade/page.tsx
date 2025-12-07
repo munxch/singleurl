@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  LoaderIcon,
   SparklesIcon,
   SearchIcon,
   StarIcon,
@@ -15,6 +14,7 @@ import {
 import {
   // Types
   BaseDemoLane,
+  AgentThought,
   // Timeline
   TimelineContainer,
   TimelineStep,
@@ -22,7 +22,7 @@ import {
   TimelineFinalStep,
   // Sources
   SourcesList,
-  BrowserWindow,
+  SearchPanel,
   // Filters
   SearchFiltersWrapper,
   FilterLabel,
@@ -341,6 +341,7 @@ export default function DateNightCascadePage() {
   const [sourcesExpanded, setSourcesExpanded] = useState(true);
   const [isThinking, setIsThinking] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [agentThought, setAgentThought] = useState<AgentThought | null>(null);
   const [filters, setFilters] = useState<SearchFilters>({
     partySize: 2,
     atmosphere: 'romantic',
@@ -374,6 +375,7 @@ export default function DateNightCascadePage() {
     setSourcesExpanded(true);
     setIsThinking(true);
     setShowFilters(false);
+    setAgentThought(null);
     setTimeout(() => {
       setIsThinking(false);
       setShowFilters(true);
@@ -384,32 +386,99 @@ export default function DateNightCascadePage() {
     setFiltersExpanded(false);
     setPhase('analyzing');
 
+    // Initial planning thought
+    setAgentThought({
+      type: 'planning',
+      message: "I'll check Resy first — they have the best real-time availability data for upscale spots.",
+      reasoning: 'Romantic + $$$ usually means better inventory on Resy vs OpenTable'
+    });
+
     setTimeout(() => {
       setPhase('spawning');
       const allLanes: DemoLane[] = LANES_DATA.map(l => ({
         ...l,
         status: 'spawning' as LaneStatus,
         progress: 0,
-        currentAction: 'Starting browser...',
+        currentAction: 'Connecting...',
       }));
       setLanes(allLanes);
       setSelectedLaneId(allLanes[0].id);
 
+      // Update thought for spawning
+      setAgentThought({
+        type: 'executing',
+        message: 'Launching parallel searches across 5 reservation platforms...',
+        reasoning: 'Running simultaneously to compare availability and prices'
+      });
+
       setTimeout(() => {
         setPhase('running');
+
+        // Thought sequence during search (slower pacing for readability)
+        const thoughtSequence: { delay: number; thought: AgentThought }[] = [
+          {
+            delay: 1500,
+            thought: {
+              type: 'analyzing',
+              message: 'Resy showing 3 restaurants matching your criteria... checking reservation slots.',
+            }
+          },
+          {
+            delay: 4000,
+            thought: {
+              type: 'analyzing',
+              message: 'Found availability at Lucia — 4.8 stars, romantic lighting mentioned in 12 reviews.',
+              reasoning: 'Cross-referencing ratings with atmosphere keywords'
+            }
+          },
+          {
+            delay: 6500,
+            thought: {
+              type: 'executing',
+              message: 'OpenTable search complete. Comparing pricing tiers with Resy results...',
+            }
+          },
+          {
+            delay: 8500,
+            thought: {
+              type: 'adapting',
+              message: 'Yelp has more reviews but no direct booking — extracting ratings to validate choices.',
+              reasoning: 'Using Yelp for social proof, Resy/OpenTable for booking'
+            }
+          },
+          {
+            delay: 10500,
+            thought: {
+              type: 'success',
+              message: 'Found 4 great options. Ranking by your preferences: romantic vibe, $$$, tonight...',
+            }
+          },
+        ];
+
+        thoughtSequence.forEach(({ delay, thought }) => {
+          setTimeout(() => setAgentThought(thought), delay);
+        });
+
         allLanes.forEach((lane, i) => {
           const mockResult = getMockResult(lane.id);
           const baseDelay = 200 + (i * 400);
 
-          setTimeout(() => updateLane(lane.id, { status: 'navigating', progress: 25, currentAction: 'Searching restaurants...' }), baseDelay);
-          setTimeout(() => updateLane(lane.id, { status: 'extracting', progress: 60, currentAction: 'Checking availability...' }), baseDelay + 800);
-          setTimeout(() => updateLane(lane.id, { status: 'extracting', progress: 85, currentAction: 'Getting details...' }), baseDelay + 1400);
+          setTimeout(() => updateLane(lane.id, { status: 'navigating', progress: 25, currentAction: 'Searching...' }), baseDelay);
+          setTimeout(() => updateLane(lane.id, { status: 'extracting', progress: 60, currentAction: 'Extracting...' }), baseDelay + 800);
+          setTimeout(() => updateLane(lane.id, { status: 'extracting', progress: 85, currentAction: 'Verifying...' }), baseDelay + 1400);
           setTimeout(() => updateLane(lane.id, { status: 'complete', progress: 100, result: mockResult }), baseDelay + 2000);
         });
 
         setTimeout(() => {
           setPhase('synthesizing');
-          setTimeout(() => setPhase('complete'), 800);
+          setAgentThought({
+            type: 'analyzing',
+            message: 'Analyzing 4 options across price, reviews, atmosphere, and availability...',
+          });
+          setTimeout(() => {
+            setPhase('complete');
+            setAgentThought(null);
+          }, 800);
         }, 3500);
       }, 400);
     }, 800);
@@ -523,51 +592,40 @@ export default function DateNightCascadePage() {
             </button>
 
             {sourcesExpanded && (
-              <div className="flex" style={{ height: '55vh', maxHeight: '500px' }}>
-                <div className="w-56 p-4 border-r border-white/10 overflow-y-auto">
-                  <SourcesList
-                    lanes={lanes}
-                    selectedLaneId={selectedLaneId}
-                    onSelectLane={setSelectedLaneId}
-                    accentColor="amber"
-                    hasResult={(lane) => !!lane.result?.restaurant}
-                    getResultLabel={(lane) => lane.result?.restaurant ? 'Found 1' : 'No results'}
-                  />
-                </div>
-                <div className="flex-1 relative overflow-hidden">
-                  {selectedLane ? (
-                    <BrowserWindow
-                      domain={selectedLane.domain}
-                      status={selectedLane.status}
-                      currentAction={selectedLane.currentAction}
-                      accentColor="amber"
-                      siteIcon="🍝"
-                      siteName={selectedLane.site}
-                      siteSubtitle="Restaurant reservations"
-                      completeOverlay={
-                        selectedLane.result?.restaurant ? (
-                          <div className="text-center">
-                            <p className="text-white font-bold text-xl">{selectedLane.result.restaurant.name}</p>
-                            <p className="text-amber-400 text-sm mt-1 flex items-center justify-center gap-1">
-                              <StarIcon className="w-4 h-4" />
-                              {selectedLane.result.restaurant.rating} • {selectedLane.result.restaurant.availability.time}
-                            </p>
-                          </div>
-                        ) : (
-                          <p className="text-white/40 text-sm">{selectedLane.result?.statusMessage || 'No results'}</p>
-                        )
-                      }
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center bg-[#0f0f1a]">
-                      <div className="text-center">
-                        <LoaderIcon className="w-6 h-6 text-amber-400/60 animate-spin mx-auto mb-2" />
-                        <p className="text-white/40 text-sm">Starting...</p>
-                      </div>
+              <SearchPanel
+                accentColor="amber"
+                agentThought={agentThought}
+                isSearching={isSearching}
+                totalSessions={lanes.length}
+                browser={selectedLane ? {
+                  domain: selectedLane.domain,
+                  status: selectedLane.status,
+                  currentAction: selectedLane.currentAction,
+                  siteIcon: '🍝',
+                  siteName: selectedLane.site,
+                  siteSubtitle: 'Restaurant reservations',
+                  completeOverlay: selectedLane.result?.restaurant ? (
+                    <div className="text-center">
+                      <p className="text-white font-bold text-xl">{selectedLane.result.restaurant.name}</p>
+                      <p className="text-amber-400 text-sm mt-1 flex items-center justify-center gap-1">
+                        <StarIcon className="w-4 h-4" />
+                        {selectedLane.result.restaurant.rating} • {selectedLane.result.restaurant.availability.time}
+                      </p>
                     </div>
-                  )}
-                </div>
-              </div>
+                  ) : (
+                    <p className="text-white/40 text-sm">{selectedLane.result?.statusMessage || 'No results'}</p>
+                  )
+                } : null}
+              >
+                <SourcesList
+                  lanes={lanes}
+                  selectedLaneId={selectedLaneId}
+                  onSelectLane={setSelectedLaneId}
+                  accentColor="amber"
+                  hasResult={(lane) => !!lane.result?.restaurant}
+                  getResultLabel={(lane) => lane.result?.restaurant ? 'Found 1' : 'No results'}
+                />
+              </SearchPanel>
             )}
           </TimelineStep>
         )}

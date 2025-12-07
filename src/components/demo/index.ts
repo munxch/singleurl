@@ -18,6 +18,7 @@ export {
   SourceRow,
   SourcesList,
   BrowserWindow,
+  SearchPanel,
 } from './sources';
 
 // Popover components
@@ -42,3 +43,11 @@ export {
   WhatsNextLabel,
   SignUpOverlay,
 } from './layout';
+
+// Agent components
+export {
+  AgentThoughts,
+  AgentLog,
+  InlineAgentStatus,
+  type AgentThought,
+} from './agent';

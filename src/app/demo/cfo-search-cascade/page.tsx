@@ -18,11 +18,12 @@ import {
 } from '@/components/icons';
 import {
   BaseDemoLane,
+  AgentThought,
   TimelineContainer,
   TimelineStep,
   TimelineResultStep,
   TimelineFinalStep,
-  BrowserWindow,
+  SearchPanel,
   DemoLayout,
   WhatsNextActions,
   WhatsNextLabel,
@@ -261,6 +262,7 @@ export default function CFOSearchCascadePage() {
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [showNotifyPopup, setShowNotifyPopup] = useState(false);
   const [notifySubmitted, setNotifySubmitted] = useState(false);
+  const [agentThought, setAgentThought] = useState<AgentThought | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
 
   const getMockSource = useCallback((laneId: string) => CFO_SEARCH_SOURCES.find(s => s.id === laneId), []);
@@ -282,26 +284,86 @@ export default function CFOSearchCascadePage() {
     setShowNotifyPopup(false);
     setNotifySubmitted(false);
 
+    // Initial planning thought
+    setAgentThought({
+      type: 'planning',
+      message: "I'll start with LinkedIn Sales Nav and ZoomInfo — best data quality for executive contacts.",
+      reasoning: 'Business databases have verified emails and direct dials'
+    });
+
     setTimeout(() => {
       setPhase('spawning_wave1');
-      const wave1: DemoLane[] = WAVE1_SOURCES.map(s => ({ id: s.id, site: s.site, domain: s.domain, status: 'spawning' as LaneStatus, progress: 0, wave: 1 as const, resultsFound: 0, currentAction: 'Starting search...' }));
+      const wave1: DemoLane[] = WAVE1_SOURCES.map(s => ({ id: s.id, site: s.site, domain: s.domain, status: 'spawning' as LaneStatus, progress: 0, wave: 1 as const, resultsFound: 0, currentAction: 'Connecting...' }));
       setLanes(wave1);
       setSelectedLaneId(wave1[0].id);
 
+      setAgentThought({
+        type: 'executing',
+        message: 'Querying business databases for CFOs at hospitality companies in DFW...',
+        reasoning: 'Filtering by industry, title, and geography'
+      });
+
       setTimeout(() => {
         setPhase('running_wave1');
+
+        // Wave 1 thought sequence (slower pacing for readability)
+        const wave1Thoughts: { delay: number; thought: AgentThought }[] = [
+          {
+            delay: 1500,
+            thought: {
+              type: 'analyzing',
+              message: 'LinkedIn showing 47 CFO profiles in Dallas hospitality sector...',
+            }
+          },
+          {
+            delay: 4500,
+            thought: {
+              type: 'analyzing',
+              message: 'Found Michael Torres at Omni Hotels — VP Finance, verifying contact info...',
+              reasoning: 'Cross-referencing with company website'
+            }
+          },
+          {
+            delay: 7000,
+            thought: {
+              type: 'adapting',
+              message: 'ZoomInfo requires subscription for full data. Pivoting to direct company sources.',
+              reasoning: 'Will extract from SEC filings and press releases'
+            }
+          },
+          {
+            delay: 10000,
+            thought: {
+              type: 'analyzing',
+              message: 'Apollo showing 12 verified emails. Checking deliverability scores...',
+            }
+          },
+          {
+            delay: 13000,
+            thought: {
+              type: 'planning',
+              message: 'Primary sources checked. Enriching with company website data...',
+              reasoning: 'Direct sources often have updated contact info'
+            }
+          },
+        ];
+
+        wave1Thoughts.forEach(({ delay, thought }) => {
+          setTimeout(() => setAgentThought(thought), delay);
+        });
+
         wave1.forEach((lane, i) => {
           const mockSource = getMockSource(lane.id);
           const isPaywalled = mockSource?.status === 'paywalled';
           const isPartial = mockSource?.status === 'partial';
           const baseDelay = 200 + (i * 500);
 
-          setTimeout(() => updateLane(lane.id, { status: 'searching', progress: 25, currentAction: 'Searching database...' }), baseDelay);
+          setTimeout(() => updateLane(lane.id, { status: 'searching', progress: 25, currentAction: 'Searching...' }), baseDelay);
 
           if (isPaywalled) {
             setTimeout(() => updateLane(lane.id, { status: 'paywalled', progress: 40, statusMessage: mockSource?.statusMessage }), baseDelay + 2000);
           } else {
-            setTimeout(() => updateLane(lane.id, { status: 'extracting', progress: 60, currentAction: 'Extracting contacts...' }), baseDelay + 1500);
+            setTimeout(() => updateLane(lane.id, { status: 'extracting', progress: 60, currentAction: 'Extracting...' }), baseDelay + 1500);
             setTimeout(() => {
               updateLane(lane.id, { status: (isPartial ? 'partial' : 'complete') as LaneStatus, progress: 100, resultsFound: mockSource?.resultsFound || 0, statusMessage: mockSource?.statusMessage });
               if (mockSource?.resultsFound) setTotalFound(prev => prev + mockSource.resultsFound);
@@ -318,20 +380,67 @@ export default function CFOSearchCascadePage() {
     if (phase === 'escalation_message') {
       setTimeout(() => {
         setPhase('spawning_wave2');
-        const wave2: DemoLane[] = WAVE2_SOURCES.map(s => ({ id: s.id, site: s.site, domain: s.domain, status: 'spawning' as LaneStatus, progress: 0, wave: 2 as const, resultsFound: 0, currentAction: 'Starting enrichment...' }));
+        const wave2: DemoLane[] = WAVE2_SOURCES.map(s => ({ id: s.id, site: s.site, domain: s.domain, status: 'spawning' as LaneStatus, progress: 0, wave: 2 as const, resultsFound: 0, currentAction: 'Connecting...' }));
         setLanes(prev => { const ids = new Set(prev.map(l => l.id)); return [...prev, ...wave2.filter(l => !ids.has(l.id))]; });
         setSelectedLaneId(wave2[0].id);
 
+        setAgentThought({
+          type: 'executing',
+          message: 'Scanning company websites for leadership team pages...',
+          reasoning: 'Direct sources often have most current contact info'
+        });
+
         setTimeout(() => {
           setPhase('running_wave2');
+
+          // Wave 2 thought sequence (slower pacing for readability)
+          const wave2Thoughts: { delay: number; thought: AgentThought }[] = [
+            {
+              delay: 2000,
+              thought: {
+                type: 'analyzing',
+                message: 'Omni Hotels leadership page found — extracting executive contacts...',
+              }
+            },
+            {
+              delay: 5500,
+              thought: {
+                type: 'analyzing',
+                message: 'Found Sarah Chen, CFO at Ashford Hospitality — email pattern verified.',
+                reasoning: 'Matched against company email format'
+              }
+            },
+            {
+              delay: 9000,
+              thought: {
+                type: 'success',
+                message: 'Compiled 23 verified CFO contacts. Scoring by data quality...',
+              }
+            },
+          ];
+
+          wave2Thoughts.forEach(({ delay, thought }) => {
+            setTimeout(() => setAgentThought(thought), delay);
+          });
+
           wave2.forEach((lane, i) => {
             const mockSource = getMockSource(lane.id);
             const baseDelay = 300 + (i * 400);
-            setTimeout(() => updateLane(lane.id, { status: 'searching', progress: 30, currentAction: 'Scanning website...' }), baseDelay);
-            setTimeout(() => updateLane(lane.id, { status: 'extracting', progress: 65, currentAction: 'Enriching data...' }), baseDelay + 1000);
+            setTimeout(() => updateLane(lane.id, { status: 'searching', progress: 30, currentAction: 'Scanning...' }), baseDelay);
+            setTimeout(() => updateLane(lane.id, { status: 'extracting', progress: 65, currentAction: 'Enriching...' }), baseDelay + 1000);
             setTimeout(() => updateLane(lane.id, { status: 'complete', progress: 100, resultsFound: mockSource?.resultsFound || 0 }), baseDelay + 2000);
           });
-          setTimeout(() => { setPhase('synthesizing'); setTimeout(() => setPhase('complete'), 1000); }, 4000);
+          setTimeout(() => {
+            setPhase('synthesizing');
+            setAgentThought({
+              type: 'analyzing',
+              message: 'Ranking 23 contacts by confidence score and data freshness...',
+            });
+            setTimeout(() => {
+              setPhase('complete');
+              setAgentThought(null);
+            }, 1000);
+          }, 4000);
         }, 500);
       }, 1800);
     }
@@ -381,41 +490,27 @@ export default function CFOSearchCascadePage() {
             </button>
 
             {sourcesExpanded && (
-              <div className="flex flex-col" style={{ height: '55vh', maxHeight: '500px' }}>
-                <div className="flex flex-1 min-h-0">
-                  <div className="w-72 p-4 border-r border-white/10 overflow-y-auto">
-                    <CFOSourcesList lanes={lanes} selectedLaneId={selectedLaneId} onSelectLane={setSelectedLaneId} showEscalation={showEscalation} />
-                  </div>
-                  <div className="flex-1 relative overflow-hidden">
-                    {selectedLane ? (
-                      <BrowserWindow
-                        domain={selectedLane.domain}
-                        status={selectedLane.status}
-                        currentAction={selectedLane.currentAction}
-                        statusMessage={selectedLane.statusMessage}
-                        accentColor="emerald"
-                        siteIcon={selectedLane.wave === 2 ? '🔍' : '💼'}
-                        siteName={selectedLane.site}
-                        siteSubtitle={selectedLane.wave === 1 ? 'Business database' : 'Data enrichment'}
-                        completeOverlay={selectedLane.resultsFound > 0 ? (
-                          <div className="text-center"><p className="text-white font-bold text-2xl">{selectedLane.resultsFound}</p><p className="text-white/50 text-sm mt-1">contacts found</p></div>
-                        ) : undefined}
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center bg-[#0f0f1a]">
-                        <div className="text-center"><LoaderIcon className="w-6 h-6 text-emerald-400/60 animate-spin mx-auto mb-2" /><p className="text-white/40 text-sm">Starting...</p></div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                {isRunning && totalFound > 0 && (
-                  <div className="flex items-center gap-3 px-4 py-3 bg-emerald-500/5 border-t border-white/5">
-                    <span className="text-base">📊</span>
-                    <span className="text-white/60 text-sm">{phase === 'running_wave2' ? 'Enriching: ' : 'Found: '}</span>
-                    <span className="text-emerald-400/90 text-sm font-medium">{totalFound} CFOs so far</span>
-                  </div>
-                )}
-              </div>
+              <SearchPanel
+                accentColor="emerald"
+                sourcesWidth="w-72"
+                agentThought={agentThought}
+                totalSessions={lanes.length}
+                isSearching={isRunning}
+                browser={selectedLane ? {
+                  domain: selectedLane.domain,
+                  status: selectedLane.status,
+                  currentAction: selectedLane.currentAction,
+                  statusMessage: selectedLane.statusMessage,
+                  siteIcon: selectedLane.wave === 2 ? '🔍' : '💼',
+                  siteName: selectedLane.site,
+                  siteSubtitle: selectedLane.wave === 1 ? 'Business database' : 'Data enrichment',
+                  completeOverlay: selectedLane.resultsFound > 0 ? (
+                    <div className="text-center"><p className="text-white font-bold text-2xl">{selectedLane.resultsFound}</p><p className="text-white/50 text-sm mt-1">contacts found</p></div>
+                  ) : undefined
+                } : null}
+              >
+                <CFOSourcesList lanes={lanes} selectedLaneId={selectedLaneId} onSelectLane={setSelectedLaneId} showEscalation={showEscalation} />
+              </SearchPanel>
             )}
           </TimelineStep>
         )}
