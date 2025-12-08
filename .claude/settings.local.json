@@ -6,7 +6,8 @@
       "Bash(__NEW_LINE__ curl -s -X POST \"https://aitinyfish.com/api/playground/runs\" )",
       "Bash(find:*)",
       "Bash(wc:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

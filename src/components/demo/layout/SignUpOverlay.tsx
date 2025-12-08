@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Image from 'next/image';
+import { MinoLogo } from '@/components/icons/MinoLogo';
 
 interface SignUpOverlayProps {
   /** Whether the overlay is visible */
@@ -20,7 +20,7 @@ interface SignUpOverlayProps {
 export function SignUpOverlay({
   isOpen,
   onClose,
-  title = 'Sign up for TinyFish',
+  title = 'Sign up for Mino',
   subtitle = 'Save your results, get alerts, and more',
 }: SignUpOverlayProps) {
   const [isVisible, setIsVisible] = useState(false);
@@ -64,14 +64,8 @@ export function SignUpOverlay({
         </button>
 
         <div className="text-center mb-6">
-          <div className="w-16 h-16 rounded-2xl overflow-hidden mx-auto mb-4">
-            <Image
-              src="/tinyfish_ai_logo.jpeg"
-              alt="TinyFish"
-              width={64}
-              height={64}
-              className="w-full h-full object-cover"
-            />
+          <div className="flex justify-center mb-4">
+            <MinoLogo className="h-8" />
           </div>
           <h2 className="text-xl font-semibold text-white">{title}</h2>
           <p className="text-white/50 text-sm mt-1">{subtitle}</p>

@@ -41,12 +41,12 @@ export const ACCENT_COLORS = {
     loader: 'text-amber-400/70',
   },
   cyan: {
-    border: 'border-cyan-400',
-    bg: 'bg-cyan-400',
-    bgLight: 'bg-cyan-500/20',
+    border: 'border-cyan-500/70',
+    bg: 'bg-cyan-500/80',
+    bgLight: 'bg-cyan-600/20',
     text: 'text-cyan-400',
-    ring: 'ring-cyan-400/50',
-    loader: 'text-cyan-400/70',
+    ring: 'ring-cyan-500/40',
+    loader: 'text-cyan-400/60',
   },
   emerald: {
     border: 'border-emerald-400',

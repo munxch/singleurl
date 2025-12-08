@@ -164,8 +164,8 @@ function AlternativeResultCard({ result }: { result: CarResult }) {
         return { text: 'Over budget', color: 'text-amber-400' };
       case 'over_mileage':
         return { text: 'Over mileage', color: 'text-amber-400' };
-      case 'no_carplay':
-        return { text: 'No CarPlay', color: 'text-amber-400' };
+      case 'no_cpo':
+        return { text: 'No CPO warranty', color: 'text-amber-400' };
       default:
         return null;
     }
@@ -232,7 +232,7 @@ function TransparencyView() {
   const getStatusText = (result: CarResult) => {
     switch (result.status) {
       case 'success':
-        if (result.id === 'honda-dallas') return '← BEST MATCH';
+        if (result.id === 'sewell-lexus') return '← BEST MATCH';
         return result.car ? formatPrice(result.car.price) : '';
       case 'blocked':
         return 'Blocked — went to dealers instead';
@@ -240,8 +240,8 @@ function TransparencyView() {
         return 'Over budget';
       case 'over_mileage':
         return 'Over mileage';
-      case 'no_carplay':
-        return 'No CarPlay confirmed';
+      case 'no_cpo':
+        return 'No CPO warranty';
       case 'no_results':
         return 'No matching inventory';
       default:

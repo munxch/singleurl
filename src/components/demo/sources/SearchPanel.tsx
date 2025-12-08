@@ -58,14 +58,21 @@ export function SearchPanel({
 
   // Track browser changes for transition animation
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isInitialRender, setIsInitialRender] = useState(true);
   const prevDomainRef = useRef<string | null>(null);
+
+  // Initial fade-in
+  useEffect(() => {
+    const timer = setTimeout(() => setIsInitialRender(false), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const currentDomain = browser?.domain || null;
     if (prevDomainRef.current && currentDomain && prevDomainRef.current !== currentDomain) {
       // Domain changed - trigger transition
       setIsTransitioning(true);
-      const timer = setTimeout(() => setIsTransitioning(false), 300);
+      const timer = setTimeout(() => setIsTransitioning(false), 400);
       return () => clearTimeout(timer);
     }
     prevDomainRef.current = currentDomain;
@@ -106,9 +113,9 @@ export function SearchPanel({
 
             {/* Main browser window */}
             <div
-              className={`relative h-full w-full rounded-xl border ${colors.border} overflow-hidden bg-[#0f0f1a] transition-all duration-300 ease-out ${
+              className={`relative h-full w-full rounded-xl border ${colors.border} overflow-hidden bg-[#0f0f1a] transition-all duration-500 ease-out ${
                 isTransitioning ? 'animate-window-swap' : ''
-              }`}
+              } ${isInitialRender ? 'opacity-0 scale-95 translate-y-4' : 'opacity-100 scale-100 translate-y-0'}`}
               style={{ zIndex: stackLayers + 1 }}
             >
               {browser ? (
@@ -137,8 +144,11 @@ export function SearchPanel({
             <style jsx>{`
               @keyframes window-swap {
                 0% {
-                  opacity: 0;
-                  transform: translateY(20px) scale(0.97);
+                  opacity: 0.3;
+                  transform: translateY(12px) scale(0.98);
+                }
+                50% {
+                  opacity: 0.8;
                 }
                 100% {
                   opacity: 1;
@@ -146,7 +156,7 @@ export function SearchPanel({
                 }
               }
               .animate-window-swap {
-                animation: window-swap 0.3s ease-out;
+                animation: window-swap 0.4s cubic-bezier(0.16, 1, 0.3, 1);
               }
             `}</style>
 

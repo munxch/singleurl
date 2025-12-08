@@ -1,7 +1,7 @@
 'use client';
 
-import React from 'react';
-import { ChevronDownIcon, LoaderIcon } from '@/components/icons';
+import React, { useState } from 'react';
+import { ChevronDownIcon, LoaderIcon, SearchIcon } from '@/components/icons';
 
 interface SearchFiltersWrapperProps {
   /** Whether the filters section is expanded */
@@ -22,6 +22,8 @@ interface SearchFiltersWrapperProps {
   readyTitle?: string;
   /** Summary chips to show when collapsed */
   summaryChips?: string[];
+  /** Whether to show notes input */
+  showNotesInput?: boolean;
   /** Custom filter content */
   children: React.ReactNode;
 }
@@ -40,8 +42,11 @@ export function SearchFiltersWrapper({
   thinkingTitle = 'Planning approach...',
   readyTitle = 'Refine Search',
   summaryChips = [],
+  showNotesInput = true,
   children,
 }: SearchFiltersWrapperProps) {
+  const [notes, setNotes] = useState('');
+
   return (
     <div>
       {/* Collapsed summary / header */}
@@ -80,20 +85,39 @@ export function SearchFiltersWrapper({
         <div className="px-4 pb-4 space-y-4 animate-fadeIn">
           {children}
 
+          {/* Notes input */}
+          {showNotesInput && (
+            <div>
+              <div className="text-white/50 text-xs uppercase tracking-wider mb-2">
+                Additional notes
+              </div>
+              <input
+                type="text"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Any special requests or preferences..."
+                className="w-full px-3 py-2.5 rounded-lg bg-white/[0.06] border border-white/10 text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/20 focus:bg-white/[0.08] transition-all"
+              />
+            </div>
+          )}
+
           {/* Start Search Button */}
           <div className="pt-2">
             <button
               onClick={onStartSearch}
               disabled={isSearching}
-              className="py-2.5 px-8 rounded-xl bg-green-500 text-white font-semibold hover:bg-green-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="py-2 px-3.5 rounded-lg bg-white text-gray-900 text-sm font-medium hover:bg-white/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {isSearching ? (
                 <>
-                  <LoaderIcon className="w-4 h-4 animate-spin" />
-                  Searching...
+                  <LoaderIcon className="w-3.5 h-3.5 animate-spin" />
+                  <span>Starting...</span>
                 </>
               ) : (
-                'Search'
+                <>
+                  <SearchIcon className="w-3.5 h-3.5" />
+                  <span>Start</span>
+                </>
               )}
             </button>
           </div>

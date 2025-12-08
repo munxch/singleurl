@@ -1,43 +1,56 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
-import { MinoLogo } from '@/components/icons/MinoLogo';
-import { ArrowLeftIcon } from '@/components/icons';
 
 interface DemoHeaderProps {
   /** Handler for restart button */
   onRestart: () => void;
-  /** Back link href */
-  backHref?: string;
-  /** Back link text */
-  backText?: string;
+  /** Handler for sign up button */
+  onSignUp?: () => void;
+  /** Query text to display in header */
+  query?: string;
 }
 
 /**
- * Standard header for demo pages with back link, logo, and restart button.
+ * Standard header for demo pages with query title and sign up button.
  */
 export function DemoHeader({
   onRestart,
-  backHref = '/',
-  backText = 'Back',
+  onSignUp,
+  query,
 }: DemoHeaderProps) {
   return (
-    <header className="flex items-center justify-between px-6 py-4">
-      <Link
-        href={backHref}
-        className="flex items-center gap-2 text-white/50 hover:text-white/70 transition-colors"
-      >
-        <ArrowLeftIcon className="w-4 h-4" />
-        <span className="text-sm">{backText}</span>
-      </Link>
-      <MinoLogo />
-      <button
-        onClick={onRestart}
-        className="text-white/50 hover:text-white/70 transition-colors text-sm"
-      >
-        Restart
-      </button>
+    <header className="sticky top-0 z-30 bg-[#0a1628]/80 backdrop-blur-sm">
+      <div className="relative px-6 py-3">
+        <div className="flex items-center justify-between gap-4">
+          {/* Left spacer - accounts for menu button */}
+          <div className="w-24 flex-shrink-0" />
+
+          {/* Center: Query title */}
+          {query && (
+            <div className="flex-1 flex justify-center min-w-0">
+              <span className="text-white/50 text-sm truncate">
+                {query}
+              </span>
+            </div>
+          )}
+
+          {/* Right: sign up */}
+          <div className="w-24 flex-shrink-0 flex justify-end">
+            {onSignUp && (
+              <button
+                onClick={onSignUp}
+                className="px-3 py-1 text-sm text-white/70 hover:text-white rounded-full border border-white/20 hover:border-white/40 hover:bg-white/5 transition-all whitespace-nowrap"
+              >
+                Sign up
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Bottom gradient divider */}
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      </div>
     </header>
   );
 }

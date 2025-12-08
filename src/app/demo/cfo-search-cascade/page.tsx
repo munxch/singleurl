@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   LoaderIcon,
   CheckIcon,
-  SparklesIcon,
   SearchIcon,
   StarIcon,
   ArrowRightIcon,
@@ -27,10 +27,13 @@ import {
   TimelineStep,
   TimelineResultStep,
   TimelineFinalStep,
+  PlanningStep,
+  SynthesisStep,
   SearchPanel,
   DemoLayout,
   WhatsNextActions,
   WhatsNextLabel,
+  SignUpOverlay,
 } from '@/components/demo';
 import {
   DataTable,
@@ -41,7 +44,6 @@ import {
   ContactIndicators,
   CompanyTypeBadge,
 } from '@/components/ui/DataTable';
-import { SignupModal } from '@/components/ui/SignupModal';
 import {
   CFO_SEARCH_QUERY,
   CFO_SEARCH_SOURCES,
@@ -62,7 +64,7 @@ interface DemoLane extends BaseDemoLane {
   resultsFound: number;
 }
 
-type DemoPhase = 'idle' | 'analyzing' | 'spawning_wave1' | 'running_wave1' | 'escalation_pause' | 'escalation_message' | 'spawning_wave2' | 'running_wave2' | 'synthesizing' | 'complete';
+type DemoPhase = 'idle' | 'planning' | 'analyzing' | 'spawning_wave1' | 'running_wave1' | 'escalation_pause' | 'escalation_message' | 'spawning_wave2' | 'running_wave2' | 'synthesizing' | 'complete';
 
 // =============================================================================
 // NOTIFY POPUP COMPONENT (Unique to CFO)
@@ -99,8 +101,8 @@ function CFOSourceRow({ lane, isSelected, onClick }: { lane: DemoLane; isSelecte
   const getStatusIcon = () => {
     switch (lane.status) {
       case 'complete': return <div className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center"><CheckIcon className="w-3 h-3 text-white/60" /></div>;
-      case 'paywalled': return <LockIcon className="w-4 h-4 text-amber-400/70" />;
-      case 'partial': return <AlertTriangleIcon className="w-4 h-4 text-amber-400/70" />;
+      case 'paywalled': return <LockIcon className="w-4 h-4 text-cyan-400/70" />;
+      case 'partial': return <AlertTriangleIcon className="w-4 h-4 text-cyan-400/70" />;
       case 'pending': return <div className="w-3 h-3 rounded-full border-2 border-white/20" />;
       default: return <LoaderIcon className="w-4 h-4 animate-spin text-cyan-400/70" />;
     }
@@ -113,7 +115,7 @@ function CFOSourceRow({ lane, isSelected, onClick }: { lane: DemoLane; isSelecte
         {getStatusIcon()}
         <span className="flex-1 text-sm text-white/80 truncate">{lane.site}</span>
         {(lane.status === 'complete' || lane.status === 'partial') && lane.resultsFound > 0 && (
-          <span className={`text-sm tabular-nums ${lane.status === 'partial' ? 'text-amber-400/80' : 'text-cyan-400/80'}`}>{lane.resultsFound} found</span>
+          <span className={`text-sm tabular-nums ${lane.status === 'partial' ? 'text-cyan-400/80' : 'text-cyan-400/80'}`}>{lane.resultsFound} found</span>
         )}
       </div>
     </button>
@@ -179,16 +181,16 @@ function CFOResultsTable({ onOpenSignup }: { onOpenSignup: () => void }) {
   return (
     <div className="overflow-hidden">
       {/* Summary message */}
-      <div className="px-4 py-3">
-        <p className="text-white/60 text-sm">
-          Found <span className="text-white font-medium">{CFO_SEARCH_SYNTHESIS.stats.totalFound} CFOs</span> at hospitality companies in the DFW area. <span className="text-cyan-400">{CFO_SEARCH_SYNTHESIS.stats.emailsVerified}</span> have verified emails.
+      <div className="px-4 pt-5 pb-4">
+        <p className="text-white/70 text-sm">
+          Found <span className="text-white font-medium">{CFO_SEARCH_SYNTHESIS.stats.totalFound} CFOs</span> at hospitality companies in the DFW area. {CFO_SEARCH_SYNTHESIS.stats.emailsVerified} have verified emails.
         </p>
       </div>
       {/* Stats - inline and subtle */}
-      <div className="flex items-center gap-4 px-4 pb-3 text-xs text-white/40">
+      <div className="flex items-center gap-4 px-4 pb-4 text-xs text-white/40">
         {tableStats.map((stat, i) => (
           <span key={i} className="flex items-center gap-1.5">
-            <span className={stat.color || 'text-white/30'}>{stat.icon}</span>
+            <span className="text-white/30">{stat.icon}</span>
             <span>{stat.value} {stat.label.toLowerCase()}</span>
           </span>
         ))}
@@ -259,6 +261,9 @@ const WAVE1_SOURCES = CFO_SEARCH_SOURCES.filter(s => s.wave === 1);
 const WAVE2_SOURCES = CFO_SEARCH_SOURCES.filter(s => s.wave === 2);
 
 export default function CFOSearchCascadePage() {
+  const searchParams = useSearchParams();
+  const isResultsView = searchParams.get('view') === 'results';
+
   const [phase, setPhase] = useState<DemoPhase>('idle');
   const [lanes, setLanes] = useState<DemoLane[]>([]);
   const [totalFound, setTotalFound] = useState(0);
@@ -280,15 +285,31 @@ export default function CFOSearchCascadePage() {
     if (activeLane) setSelectedLaneId(activeLane.id);
   }, [lanes, selectedLaneId]);
 
-  const startDemo = useCallback(() => {
+  // Cycle through active sessions periodically during search to show parallel execution
+  useEffect(() => {
+    if (phase !== 'running_wave1' && phase !== 'running_wave2') return;
+
+    const cycleInterval = setInterval(() => {
+      setSelectedLaneId(prevId => {
+        // Get all active (non-complete, non-paywalled, non-partial) lanes
+        const activeLanes = lanes.filter(l =>
+          l.status !== 'complete' && l.status !== 'paywalled' && l.status !== 'partial' && l.status !== 'pending'
+        );
+        if (activeLanes.length <= 1) return prevId;
+
+        // Find current index among active lanes
+        const currentIndex = activeLanes.findIndex(l => l.id === prevId);
+        // Move to next active lane (wrap around)
+        const nextIndex = (currentIndex + 1) % activeLanes.length;
+        return activeLanes[nextIndex].id;
+      });
+    }, 3000); // Cycle every 3 seconds
+
+    return () => clearInterval(cycleInterval);
+  }, [phase, lanes]);
+
+  const handlePlanningComplete = useCallback(() => {
     setPhase('analyzing');
-    setLanes([]);
-    setTotalFound(0);
-    setShowEscalation(false);
-    setSelectedLaneId(null);
-    setSourcesExpanded(true);
-    setShowNotifyPopup(false);
-    setNotifySubmitted(false);
 
     // Initial planning thought
     setAgentThought({
@@ -312,17 +333,17 @@ export default function CFOSearchCascadePage() {
       setTimeout(() => {
         setPhase('running_wave1');
 
-        // Wave 1 thought sequence (slower pacing for readability)
+        // Wave 1 thought sequence (spread over ~15 seconds)
         const wave1Thoughts: { delay: number; thought: AgentThought }[] = [
           {
-            delay: 1500,
+            delay: 2000,
             thought: {
               type: 'analyzing',
               message: 'LinkedIn showing 47 CFO profiles in Dallas hospitality sector...',
             }
           },
           {
-            delay: 4500,
+            delay: 6000,
             thought: {
               type: 'analyzing',
               message: 'Found Michael Torres at Omni Hotels — VP Finance, verifying contact info...',
@@ -330,7 +351,7 @@ export default function CFOSearchCascadePage() {
             }
           },
           {
-            delay: 7000,
+            delay: 10000,
             thought: {
               type: 'adapting',
               message: 'ZoomInfo requires subscription for full data. Pivoting to direct company sources.',
@@ -338,14 +359,7 @@ export default function CFOSearchCascadePage() {
             }
           },
           {
-            delay: 10000,
-            thought: {
-              type: 'analyzing',
-              message: 'Apollo showing 12 verified emails. Checking deliverability scores...',
-            }
-          },
-          {
-            delay: 13000,
+            delay: 14000,
             thought: {
               type: 'planning',
               message: 'Primary sources checked. Enriching with company website data...',
@@ -358,28 +372,49 @@ export default function CFOSearchCascadePage() {
           setTimeout(() => setAgentThought(thought), delay);
         });
 
+        // Start ALL wave1 lanes nearly simultaneously, complete at staggered times
+        const wave1CompletionTimes = [6000, 5000, 9000, 12000]; // 4 lanes (ZoomInfo paywalled early)
+
         wave1.forEach((lane, i) => {
           const mockSource = getMockSource(lane.id);
           const isPaywalled = mockSource?.status === 'paywalled';
           const isPartial = mockSource?.status === 'partial';
-          const baseDelay = 200 + (i * 500);
+          const startDelay = 500 + (i * 300); // Start all within first 1.5 seconds
+          const completionTime = wave1CompletionTimes[i] || 10000;
+          const duration = completionTime - startDelay;
 
-          setTimeout(() => updateLane(lane.id, { status: 'searching', progress: 25, currentAction: 'Searching...' }), baseDelay);
+          setTimeout(() => updateLane(lane.id, { status: 'searching', progress: 15, currentAction: 'Connecting...' }), startDelay);
+          setTimeout(() => updateLane(lane.id, { status: 'searching', progress: 30, currentAction: 'Querying database...' }), startDelay + duration * 0.25);
 
           if (isPaywalled) {
-            setTimeout(() => updateLane(lane.id, { status: 'paywalled', progress: 40, statusMessage: mockSource?.statusMessage }), baseDelay + 2000);
+            setTimeout(() => {
+              updateLane(lane.id, { status: 'paywalled', progress: 40, statusMessage: mockSource?.statusMessage });
+            }, completionTime);
           } else {
-            setTimeout(() => updateLane(lane.id, { status: 'extracting', progress: 60, currentAction: 'Extracting...' }), baseDelay + 1500);
+            setTimeout(() => updateLane(lane.id, { status: 'extracting', progress: 50, currentAction: 'Found results...' }), startDelay + duration * 0.5);
+            setTimeout(() => updateLane(lane.id, { status: 'extracting', progress: 75, currentAction: 'Extracting contacts...' }), startDelay + duration * 0.75);
             setTimeout(() => {
               updateLane(lane.id, { status: (isPartial ? 'partial' : 'complete') as LaneStatus, progress: 100, resultsFound: mockSource?.resultsFound || 0, statusMessage: mockSource?.statusMessage });
               if (mockSource?.resultsFound) setTotalFound(prev => prev + mockSource.resultsFound);
-            }, baseDelay + 2800);
+            }, completionTime);
           }
         });
-        setTimeout(() => setPhase('escalation_pause'), 5500);
+        setTimeout(() => setPhase('escalation_pause'), 14000);
       }, 500);
-    }, 1200);
+    }, 800);
   }, [getMockSource, updateLane]);
+
+  const startDemo = useCallback(() => {
+    setPhase('planning');
+    setLanes([]);
+    setTotalFound(0);
+    setShowEscalation(false);
+    setSelectedLaneId(null);
+    setSourcesExpanded(true);
+    setShowNotifyPopup(false);
+    setNotifySubmitted(false);
+    setAgentThought(null);
+  }, []);
 
   useEffect(() => {
     if (phase === 'escalation_pause') setTimeout(() => { setPhase('escalation_message'); setShowEscalation(true); }, 1000);
@@ -399,17 +434,17 @@ export default function CFOSearchCascadePage() {
         setTimeout(() => {
           setPhase('running_wave2');
 
-          // Wave 2 thought sequence (slower pacing for readability)
+          // Wave 2 thought sequence (spread over ~12 seconds)
           const wave2Thoughts: { delay: number; thought: AgentThought }[] = [
             {
-              delay: 2000,
+              delay: 3000,
               thought: {
                 type: 'analyzing',
                 message: 'Omni Hotels leadership page found — extracting executive contacts...',
               }
             },
             {
-              delay: 5500,
+              delay: 7000,
               thought: {
                 type: 'analyzing',
                 message: 'Found Sarah Chen, CFO at Ashford Hospitality — email pattern verified.',
@@ -417,7 +452,7 @@ export default function CFOSearchCascadePage() {
               }
             },
             {
-              delay: 9000,
+              delay: 11000,
               thought: {
                 type: 'success',
                 message: 'Compiled 23 verified CFO contacts. Scoring by data quality...',
@@ -429,35 +464,69 @@ export default function CFOSearchCascadePage() {
             setTimeout(() => setAgentThought(thought), delay);
           });
 
+          // Start ALL wave2 lanes nearly simultaneously, complete at staggered times
+          const wave2CompletionTimes = [5000, 7000, 9000, 11000]; // 4 lanes
+
           wave2.forEach((lane, i) => {
             const mockSource = getMockSource(lane.id);
-            const baseDelay = 300 + (i * 400);
-            setTimeout(() => updateLane(lane.id, { status: 'searching', progress: 30, currentAction: 'Scanning...' }), baseDelay);
-            setTimeout(() => updateLane(lane.id, { status: 'extracting', progress: 65, currentAction: 'Enriching...' }), baseDelay + 1000);
-            setTimeout(() => updateLane(lane.id, { status: 'complete', progress: 100, resultsFound: mockSource?.resultsFound || 0 }), baseDelay + 2000);
+            const startDelay = 500 + (i * 300); // Start all within first 1.5 seconds
+            const completionTime = wave2CompletionTimes[i] || 9000;
+            const duration = completionTime - startDelay;
+
+            setTimeout(() => updateLane(lane.id, { status: 'searching', progress: 15, currentAction: 'Loading page...' }), startDelay);
+            setTimeout(() => updateLane(lane.id, { status: 'searching', progress: 30, currentAction: 'Scanning team page...' }), startDelay + duration * 0.25);
+            setTimeout(() => updateLane(lane.id, { status: 'extracting', progress: 50, currentAction: 'Found contacts...' }), startDelay + duration * 0.5);
+            setTimeout(() => updateLane(lane.id, { status: 'extracting', progress: 75, currentAction: 'Enriching data...' }), startDelay + duration * 0.75);
+            setTimeout(() => {
+              updateLane(lane.id, { status: 'complete', progress: 100, resultsFound: mockSource?.resultsFound || 0 });
+            }, completionTime);
           });
           setTimeout(() => {
             setPhase('synthesizing');
-            setAgentThought({
-              type: 'analyzing',
-              message: 'Ranking 23 contacts by confidence score and data freshness...',
-            });
-            setTimeout(() => {
-              setPhase('complete');
-              setAgentThought(null);
-            }, 1000);
-          }, 4000);
+            setAgentThought(null);
+          }, 13000);
         }, 500);
       }, 1800);
     }
   }, [phase, getMockSource, updateLane]);
 
-  useEffect(() => { const timer = setTimeout(startDemo, 500); return () => clearTimeout(timer); }, [startDemo]);
+  // Called when synthesis animation completes
+  const handleSynthesisComplete = useCallback(() => {
+    setPhase('complete');
+  }, []);
+
+  // Skip to completed state for results view
+  const skipToComplete = useCallback(() => {
+    const allLanes: DemoLane[] = CFO_SEARCH_SOURCES.map(s => ({
+      id: s.id,
+      site: s.site,
+      domain: s.domain,
+      status: (s.status === 'success' ? 'complete' : s.status) as LaneStatus,
+      progress: 100,
+      wave: s.wave as 1 | 2,
+      resultsFound: s.resultsFound,
+      currentAction: s.status === 'success' ? 'Done' : s.status === 'paywalled' ? 'Paywalled' : 'Partial',
+    }));
+    setLanes(allLanes);
+    setTotalFound(allLanes.reduce((acc, l) => acc + l.resultsFound, 0));
+    setPhase('complete');
+    setSourcesExpanded(false);
+    setAgentThought(null);
+  }, []);
+
+  useEffect(() => {
+    if (isResultsView) {
+      skipToComplete();
+    } else {
+      const timer = setTimeout(startDemo, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isResultsView, skipToComplete, startDemo]);
   useEffect(() => { if (phase === 'complete' && resultsRef.current) setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300); }, [phase]);
   // Notify popup is now triggered by bell button click, not auto-popup
 
   const totalComplete = lanes.filter(l => ['complete', 'paywalled', 'partial'].includes(l.status)).length;
-  const isRunning = phase !== 'idle' && phase !== 'complete';
+  const isRunning = phase === 'analyzing' || phase === 'spawning_wave1' || phase === 'running_wave1' || phase === 'escalation_pause' || phase === 'escalation_message' || phase === 'spawning_wave2' || phase === 'running_wave2';
   const selectedLane = lanes.find(l => l.id === selectedLaneId);
 
   const whatsNextActions = [
@@ -467,19 +536,29 @@ export default function CFOSearchCascadePage() {
   ];
 
   return (
-    <DemoLayout onRestart={startDemo}>
+    <DemoLayout onRestart={startDemo} onSignUp={() => setShowSignupModal(true)} query={CFO_SEARCH_QUERY}>
       <TimelineContainer>
         {/* Step 1: Query */}
-        <TimelineStep icon={<SparklesIcon className="w-3.5 h-3.5" />} isActive={phase === 'idle' || phase === 'analyzing'} isComplete={phase !== 'idle' && phase !== 'analyzing'} accentColor="cyan" showConnector={phase !== 'idle' && phase !== 'analyzing'}>
+        <TimelineStep icon={<SearchIcon className="w-3.5 h-3.5" />} isActive={phase === 'idle'} isComplete={phase !== 'idle'} accentColor="cyan" showConnector={phase !== 'idle'}>
           <div className="p-4">
             <div className="text-white/50 text-xs uppercase tracking-wider mb-1">Searching</div>
             <div className="text-white text-lg">"{CFO_SEARCH_QUERY}"</div>
           </div>
         </TimelineStep>
 
-        {/* Step 2: Sources + Browser */}
-        {phase !== 'idle' && phase !== 'analyzing' && (
-          <TimelineStep icon={<SearchIcon className="w-3.5 h-3.5" />} isActive={isRunning} isComplete={phase === 'complete'} accentColor="cyan" showConnector={phase === 'complete'}>
+        {/* Step 2: Planning */}
+        <PlanningStep
+          isPlanning={phase === 'planning'}
+          isVisible={phase === 'planning' || isRunning || phase === 'complete'}
+          showConnector={isRunning || phase === 'complete'}
+          sites={WAVE1_SOURCES}
+          accentColor="cyan"
+          onPlanningComplete={handlePlanningComplete}
+        />
+
+        {/* Step 3: Sources + Browser */}
+        {(isRunning || phase === 'synthesizing' || phase === 'complete') && (
+          <TimelineStep icon={<SearchIcon className="w-3.5 h-3.5" />} isActive={isRunning} isComplete={phase === 'synthesizing' || phase === 'complete'} accentColor="cyan" showConnector={phase === 'synthesizing' || phase === 'complete'}>
             <div className={`flex items-center justify-between px-4 py-3 ${sourcesExpanded ? 'border-b border-white/10' : ''}`}>
               <button
                 onClick={() => phase === 'complete' && setSourcesExpanded(!sourcesExpanded)}
@@ -528,7 +607,24 @@ export default function CFOSearchCascadePage() {
           </TimelineStep>
         )}
 
-        {/* Step 3: Results */}
+        {/* Step 4: Synthesis */}
+        <SynthesisStep
+          isSynthesizing={phase === 'synthesizing'}
+          isVisible={phase === 'synthesizing' || phase === 'complete'}
+          showConnector={phase === 'complete'}
+          sourcesCount={lanes.length}
+          resultsCount={lanes.reduce((acc, l) => acc + l.resultsFound, 0)}
+          analysisPoints={[
+            { id: 'emails', label: 'Verifying email addresses', icon: '📧' },
+            { id: 'confidence', label: 'Scoring data confidence', icon: '✅' },
+            { id: 'freshness', label: 'Checking data freshness', icon: '🕐' },
+            { id: 'ranking', label: 'Ranking by quality score', icon: '🎯' },
+          ]}
+          accentColor="cyan"
+          onSynthesisComplete={handleSynthesisComplete}
+        />
+
+        {/* Step 5: Results */}
         {phase === 'complete' && (
           <TimelineResultStep ref={resultsRef} icon={<StarIcon className="w-3.5 h-3.5" />} showConnector={true}>
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
@@ -543,7 +639,7 @@ export default function CFOSearchCascadePage() {
           </TimelineResultStep>
         )}
 
-        {/* Step 4: What's Next */}
+        {/* Step 6: What's Next */}
         {phase === 'complete' && (
           <TimelineFinalStep icon={<ArrowRightIcon className="w-3.5 h-3.5" />} animationDelay="200ms">
             <div className="p-4">
@@ -564,7 +660,7 @@ export default function CFOSearchCascadePage() {
         )}
       </TimelineContainer>
 
-      <SignupModal isOpen={showSignupModal} onClose={() => setShowSignupModal(false)} title="Export your results" subtitle="Create a free account to export contacts and sync with your CRM." />
+      <SignUpOverlay isOpen={showSignupModal} onClose={() => setShowSignupModal(false)} subtitle="Export contacts, sync with your CRM, and more" />
       <NotifyMePopup isOpen={showNotifyPopup} onClose={() => setShowNotifyPopup(false)} onSubmit={() => setNotifySubmitted(true)} />
     </DemoLayout>
   );

@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
-  SparklesIcon,
   SearchIcon,
   StarIcon,
   ArrowRightIcon,
@@ -14,6 +14,9 @@ import {
   BookmarkIcon,
   ShareIcon,
   MessageCircleIcon,
+  ClockIcon,
+  ExternalLinkIcon,
+  BellIcon,
 } from '@/components/icons';
 import {
   // Types
@@ -24,6 +27,8 @@ import {
   TimelineStep,
   TimelineResultStep,
   TimelineFinalStep,
+  PlanningStep,
+  SynthesisStep,
   // Sources
   SourcesList,
   SearchPanel,
@@ -59,7 +64,7 @@ interface DemoLane extends BaseDemoLane {
   result?: RestaurantResult;
 }
 
-type DemoPhase = 'idle' | 'ready' | 'analyzing' | 'spawning' | 'running' | 'synthesizing' | 'complete';
+type DemoPhase = 'idle' | 'ready' | 'planning' | 'spawning' | 'running' | 'synthesizing' | 'complete';
 
 interface SearchFilters {
   partySize: number;
@@ -148,89 +153,117 @@ function DateNightFilters({
 // HERO RESULT CARD
 // =============================================================================
 
+// Gallery images for Fachini
+const HERO_RESTAURANT_GALLERY = [
+  '/reservation-research/Fachini-1.jpg',
+  '/reservation-research/Fachini-2.jpg',
+  '/reservation-research/Fachini-interior-1.jpg',
+  '/reservation-research/fachini-3.webp',
+  '/reservation-research/fachini-4.jpg',
+];
+
 function HeroResultCard({ onBook }: { onBook: () => void }) {
   const result = DATE_NIGHT_BEST_RESULT;
   const synthesis = DATE_NIGHT_SYNTHESIS;
+  const [selectedImage, setSelectedImage] = useState(0);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<number | null>(1); // Default to 7pm
 
   if (!result.restaurant) return null;
 
+  const timeSlots = [
+    { time: '6:30pm', available: true },
+    { time: '7:00pm', available: true },
+    { time: '7:30pm', available: true },
+    { time: '8:00pm', available: true },
+  ];
+
   return (
     <div className="space-y-5">
-      {/* Image Grid */}
-      <div className="grid grid-cols-4 gap-2 h-48">
-        <div className="col-span-2 row-span-2 rounded-xl overflow-hidden bg-gradient-to-br from-cyan-900/40 to-slate-900 relative">
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center">
-              <div className="text-5xl mb-2">🍝</div>
-              <div className="text-white/40 text-xs">Handmade Pasta</div>
+      {/* Image Gallery */}
+      <div className="space-y-2">
+        {/* Hero Image */}
+        <div className="relative h-72 rounded-xl overflow-hidden bg-gradient-to-br from-slate-700 to-slate-900 ring-1 ring-white/10 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.1)]">
+          <img
+            src={HERO_RESTAURANT_GALLERY[selectedImage]}
+            alt={result.restaurant.name}
+            className="w-full h-full object-cover transition-opacity duration-300"
+          />
+          <div className="absolute inset-0 rounded-xl shadow-[inset_0_0_20px_rgba(255,255,255,0.05)] pointer-events-none" />
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+            <div className="flex items-center gap-2 text-white/60 text-sm">
+              <span>{result.restaurant.cuisine}</span>
+              <span>•</span>
+              <span>{formatPriceLevel(result.restaurant.priceLevel)}</span>
+              <span>•</span>
+              <span>{result.restaurant.distance} mi away</span>
             </div>
           </div>
         </div>
-        <div className="rounded-xl overflow-hidden bg-gradient-to-br from-rose-900/30 to-slate-900 flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-2xl">🥖</div>
-            <div className="text-white/30 text-[10px]">Fresh Bread</div>
-          </div>
-        </div>
-        <div className="rounded-xl overflow-hidden bg-gradient-to-br from-cyan-800/30 to-slate-900 flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-2xl">🍷</div>
-            <div className="text-white/30 text-[10px]">Wine Bar</div>
-          </div>
-        </div>
-        <div className="rounded-xl overflow-hidden bg-gradient-to-br from-orange-900/30 to-slate-900 flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-2xl">🕯️</div>
-            <div className="text-white/30 text-[10px]">Intimate</div>
-          </div>
-        </div>
-        <div className="rounded-xl overflow-hidden bg-gradient-to-br from-slate-800/50 to-slate-900 flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-2xl">🧑‍🍳</div>
-            <div className="text-white/30 text-[10px]">Chef's Table</div>
-          </div>
+
+        {/* Thumbnail Gallery */}
+        <div className="flex gap-1.5">
+          {HERO_RESTAURANT_GALLERY.map((img, i) => (
+            <button
+              key={i}
+              onClick={() => setSelectedImage(i)}
+              className={`relative flex-1 aspect-[4/3] rounded-lg overflow-hidden transition-all ${
+                selectedImage === i
+                  ? 'ring-2 ring-cyan-400 ring-offset-1 ring-offset-[#0a0a14]'
+                  : 'opacity-60 hover:opacity-100'
+              }`}
+            >
+              <img src={img} alt={`View ${i + 1}`} className="w-full h-full object-cover" />
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Title Row */}
+      {/* Title Row with Actions */}
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">{result.restaurant.name}</h1>
-          <div className="flex items-center gap-3 text-white/60 mt-1">
+          <div className="flex items-center gap-3 text-white/60 mt-1 text-sm">
             <span className="flex items-center gap-1">
-              <StarIcon className="w-4 h-4 text-cyan-400" />
+              <StarIcon className="w-3.5 h-3.5 text-cyan-400" />
               {result.restaurant.rating} ({result.restaurant.reviewCount})
             </span>
             <span>•</span>
-            <span>{result.restaurant.cuisine}</span>
+            <span className="flex items-center gap-1">
+              <MapPinIcon className="w-3.5 h-3.5" />
+              {result.restaurant.distance} mi
+            </span>
             <span>•</span>
             <span>{formatPriceLevel(result.restaurant.priceLevel)}</span>
           </div>
         </div>
-        <div className="text-right">
-          <div className="text-2xl font-bold text-cyan-400">{synthesis.subtitle}</div>
-          <div className="text-white/50 text-sm">Party of 2</div>
+        <div className="flex items-center gap-2">
+          <button className="py-1.5 px-2.5 rounded-lg bg-white/10 text-white/70 text-xs hover:bg-white/15 transition-colors flex items-center gap-1">
+            <ExternalLinkIcon className="w-3 h-3" />Menu
+          </button>
+          <button className="py-1.5 px-2.5 rounded-lg bg-white/10 text-white/70 text-xs hover:bg-white/15 transition-colors flex items-center gap-1">
+            <PhoneIcon className="w-3 h-3" />Call
+          </button>
         </div>
       </div>
 
       {/* Vibe Badges */}
       <div className="flex flex-wrap gap-2">
         {result.restaurant.vibe.map((v, i) => (
-          <span key={i} className="px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 text-sm flex items-center gap-1.5">
-            <CheckIcon className="w-3.5 h-3.5" />
+          <span key={i} className="px-2.5 py-1 rounded-full bg-cyan-500/15 text-cyan-300/90 text-xs flex items-center gap-1">
+            <CheckIcon className="w-3 h-3" />
             {v}
           </span>
         ))}
       </div>
 
-      {/* Why Mino Picked This */}
-      <div className="p-4 rounded-xl bg-white/5 border border-white/10">
-        <div className="text-white/50 text-xs uppercase tracking-wider mb-3 font-medium">
+      {/* Why Mino Picked This - no container */}
+      <div>
+        <div className="text-white/40 text-xs uppercase tracking-wider mb-2 font-medium">
           Why Mino Picked This
         </div>
-        <ul className="space-y-2">
+        <ul className="space-y-1.5">
           {synthesis.rationale.map((reason, i) => (
-            <li key={i} className="flex items-start gap-2 text-white/80">
+            <li key={i} className="flex items-start gap-2 text-white/70 text-sm">
               <span className="text-cyan-400 mt-0.5">•</span>
               {reason}
             </li>
@@ -238,59 +271,39 @@ function HeroResultCard({ onBook }: { onBook: () => void }) {
         </ul>
       </div>
 
-      {/* Restaurant Card with Call + Reservation */}
-      <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-4">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center text-xl">
-            🍽️
+      {/* Mino Reservation Action Block */}
+      <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center">
+            <span className="text-[10px] text-white font-bold">M</span>
           </div>
-          <div className="flex-1">
-            <div className="text-white font-medium">{result.restaurant.name}</div>
-            <div className="flex items-center gap-3 text-white/50 text-sm mt-1">
-              <span className="flex items-center gap-1">
-                <StarIcon className="w-3.5 h-3.5 text-cyan-400" />
-                {result.restaurant.rating} ({result.restaurant.reviewCount})
-              </span>
-              <span className="flex items-center gap-1">
-                <MapPinIcon className="w-3.5 h-3.5" />
-                {result.restaurant.distance} mi
-              </span>
-            </div>
-          </div>
-          <button className="py-2.5 px-4 rounded-xl bg-white/10 text-white font-medium hover:bg-white/20 transition-colors flex items-center gap-2">
-            <PhoneIcon className="w-4 h-4" />
-            Call
-          </button>
+          <span className="text-white/70 text-sm font-medium">Mino can book your reservation</span>
         </div>
-
-        <div className="pt-3 border-t border-white/10">
-          <div className="flex items-center justify-between mb-3">
-            <div className="text-white/50 text-xs uppercase tracking-wider font-medium">
-              Available Times Tonight
-            </div>
+        <div className="flex items-center gap-2">
+          <div className="flex flex-wrap gap-1.5 flex-1">
+            {timeSlots.map((slot, i) => (
+              <button
+                key={i}
+                onClick={() => setSelectedTimeSlot(i)}
+                className={`px-3 py-2 rounded-lg text-sm transition-all ${
+                  selectedTimeSlot === i
+                    ? 'bg-cyan-500/20 border border-cyan-400/50 text-white'
+                    : 'bg-white/[0.03] border border-white/10 text-white/70 hover:bg-white/[0.06]'
+                }`}
+              >
+                {slot.time}
+              </button>
+            ))}
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex gap-2 flex-wrap flex-1">
-              {['6:30pm', '7:00pm', '7:15pm', '7:30pm', '8:00pm', '8:30pm'].map((time, i) => (
-                <button
-                  key={i}
-                  className={`px-3 py-2 rounded-lg text-sm transition-colors ${
-                    i === 1
-                      ? 'bg-cyan-500 text-white'
-                      : 'bg-white/5 text-white/70 hover:bg-white/10 border border-white/10'
-                  }`}
-                >
-                  {time}
-                </button>
-              ))}
-            </div>
+          {selectedTimeSlot !== null && (
             <button
               onClick={onBook}
-              className="py-3 px-6 rounded-xl bg-cyan-500 text-white font-semibold hover:bg-cyan-400 transition-colors flex-shrink-0"
+              className="py-2 px-4 rounded-lg bg-cyan-600/80 text-white text-sm font-medium hover:bg-cyan-500/80 transition-all flex items-center gap-1.5 flex-shrink-0"
             >
-              Reserve 7:00pm
+              <CalendarIcon className="w-3.5 h-3.5" />
+              Reserve
             </button>
-          </div>
+          )}
         </div>
       </div>
     </div>
@@ -302,30 +315,75 @@ function HeroResultCard({ onBook }: { onBook: () => void }) {
 // =============================================================================
 
 function AlternativeResultCard({ result, onBook }: { result: RestaurantResult; onBook: () => void }) {
+  const [selectedTime, setSelectedTime] = useState(0);
   if (!result.restaurant) return null;
 
+  // Generate multiple available times based on the restaurant's time
+  const baseTime = result.restaurant.availability.time;
+  const availableTimes = [baseTime];
+  // Add 30 min and 1 hour later slots
+  const baseHour = parseInt(baseTime.split(':')[0]);
+  const isPM = baseTime.includes('pm');
+  availableTimes.push(`${baseHour}:30${isPM ? 'pm' : 'am'}`);
+  availableTimes.push(`${baseHour + 1}:00${isPM ? 'pm' : 'am'}`);
+
   return (
-    <div className="w-56 flex-shrink-0 p-3 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.05] transition-colors">
-      <div className="w-full h-24 rounded-lg bg-gradient-to-br from-cyan-900/20 to-slate-800 flex items-center justify-center mb-3">
-        <span className="text-3xl">🍝</span>
+    <div className="w-72 flex-shrink-0 rounded-xl bg-white/[0.02] border border-white/[0.06] overflow-hidden hover:bg-white/[0.03] transition-colors group">
+      {/* Image */}
+      <div className="h-32 overflow-hidden relative">
+        <img
+          src={result.restaurant.image}
+          alt={result.restaurant.name}
+          className="w-full h-full object-cover"
+        />
+        {/* View more button - appears on hover */}
+        <button className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm text-gray-700 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-white hover:scale-110 transition-all duration-200 shadow-lg">
+          <ExternalLinkIcon className="w-3.5 h-3.5" />
+        </button>
       </div>
-      <div className="space-y-2">
-        <div className="text-white font-medium text-sm truncate">{result.restaurant.name}</div>
-        <div className="text-white/50 text-xs">
-          {result.restaurant.cuisine} • {formatPriceLevel(result.restaurant.priceLevel)}
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1 text-cyan-400 text-sm">
+
+      <div className="p-3 space-y-3">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <div className="text-white font-medium text-sm">{result.restaurant.name}</div>
+            <div className="text-white/50 text-xs mt-0.5">
+              {result.restaurant.cuisine} • {formatPriceLevel(result.restaurant.priceLevel)}
+            </div>
+          </div>
+          <div className="flex items-center gap-1 text-cyan-400 text-xs bg-cyan-500/10 px-1.5 py-0.5 rounded">
             <StarIcon className="w-3 h-3" />
             {result.restaurant.rating}
           </div>
-          <div className="text-white/70 text-sm">{result.restaurant.availability.time}</div>
         </div>
+
+        {/* Available Times */}
+        <div>
+          <div className="text-white/40 text-[10px] uppercase tracking-wider mb-1.5">Available tonight</div>
+          <div className="flex gap-1.5">
+            {availableTimes.map((time, i) => (
+              <button
+                key={i}
+                onClick={() => setSelectedTime(i)}
+                className={`flex-1 py-1.5 px-2 rounded text-xs transition-all ${
+                  selectedTime === i
+                    ? 'bg-cyan-500/20 border border-cyan-400/40 text-white'
+                    : 'bg-white/[0.03] border border-white/10 text-white/60 hover:bg-white/[0.06]'
+                }`}
+              >
+                {time}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Book Button */}
         <button
           onClick={onBook}
-          className="w-full py-2 px-3 rounded-lg bg-white/10 text-white text-xs font-medium hover:bg-white/20 transition-colors border border-white/10"
+          className="w-full py-2 px-3 rounded-lg bg-white/10 text-white text-xs font-medium hover:bg-white/15 transition-colors border border-white/10 flex items-center justify-center gap-1.5"
         >
-          Book {result.restaurant.availability.time}
+          <CalendarIcon className="w-3 h-3" />
+          Book {availableTimes[selectedTime]}
         </button>
       </div>
     </div>
@@ -337,6 +395,9 @@ function AlternativeResultCard({ result, onBook }: { result: RestaurantResult; o
 // =============================================================================
 
 export default function DateNightCascadePage() {
+  const searchParams = useSearchParams();
+  const isResultsView = searchParams.get('view') === 'results';
+
   const [phase, setPhase] = useState<DemoPhase>('idle');
   const [lanes, setLanes] = useState<DemoLane[]>([]);
   const [selectedLaneId, setSelectedLaneId] = useState<string | null>(null);
@@ -371,6 +432,27 @@ export default function DateNightCascadePage() {
     if (activeLane) setSelectedLaneId(activeLane.id);
   }, [lanes, selectedLaneId]);
 
+  // Cycle through active sessions periodically during search to show parallel execution
+  useEffect(() => {
+    if (phase !== 'running') return;
+
+    const cycleInterval = setInterval(() => {
+      setSelectedLaneId(prevId => {
+        // Get all active (non-complete) lanes
+        const activeLanes = lanes.filter(l => l.status !== 'complete' && l.status !== 'pending');
+        if (activeLanes.length <= 1) return prevId;
+
+        // Find current index among active lanes
+        const currentIndex = activeLanes.findIndex(l => l.id === prevId);
+        // Move to next active lane (wrap around)
+        const nextIndex = (currentIndex + 1) % activeLanes.length;
+        return activeLanes[nextIndex].id;
+      });
+    }, 3500); // Cycle every 3.5 seconds
+
+    return () => clearInterval(cycleInterval);
+  }, [phase, lanes]);
+
   const startDemo = useCallback(() => {
     setPhase('ready');
     setLanes([]);
@@ -388,110 +470,136 @@ export default function DateNightCascadePage() {
 
   const handleStartSearch = useCallback(() => {
     setFiltersExpanded(false);
-    setPhase('analyzing');
+    setPhase('planning');
+    setAgentThought(null);
+  }, []);
 
-    // Initial planning thought
+  // Called when planning animation completes
+  const handlePlanningComplete = useCallback(() => {
+    setPhase('spawning');
+    const allLanes: DemoLane[] = LANES_DATA.map(l => ({
+      ...l,
+      status: 'spawning' as LaneStatus,
+      progress: 0,
+      currentAction: 'Connecting...',
+    }));
+    setLanes(allLanes);
+    setSelectedLaneId(allLanes[0].id);
+
+    // Update thought for spawning
     setAgentThought({
-      type: 'planning',
-      message: "I'll check Resy first — they have the best real-time availability data for upscale spots.",
-      reasoning: 'Romantic + $$$ usually means better inventory on Resy vs OpenTable'
+      type: 'executing',
+      message: 'Launching parallel searches across 5 reservation platforms...',
+      reasoning: 'Running simultaneously to compare availability and prices'
     });
 
     setTimeout(() => {
-      setPhase('spawning');
-      const allLanes: DemoLane[] = LANES_DATA.map(l => ({
-        ...l,
-        status: 'spawning' as LaneStatus,
-        progress: 0,
-        currentAction: 'Connecting...',
-      }));
-      setLanes(allLanes);
-      setSelectedLaneId(allLanes[0].id);
+      setPhase('running');
 
-      // Update thought for spawning
-      setAgentThought({
-        type: 'executing',
-        message: 'Launching parallel searches across 5 reservation platforms...',
-        reasoning: 'Running simultaneously to compare availability and prices'
+      // Thought sequence during search (spread over 30 seconds)
+      const thoughtSequence: { delay: number; thought: AgentThought }[] = [
+        {
+          delay: 2000,
+          thought: {
+            type: 'analyzing',
+            message: 'Resy showing 3 restaurants matching your criteria... checking reservation slots.',
+          }
+        },
+        {
+          delay: 7000,
+          thought: {
+            type: 'analyzing',
+            message: 'Found availability at Lucia — 4.8 stars, romantic lighting mentioned in 12 reviews.',
+            reasoning: 'Cross-referencing ratings with atmosphere keywords'
+          }
+        },
+        {
+          delay: 14000,
+          thought: {
+            type: 'executing',
+            message: 'OpenTable search complete. Comparing pricing tiers with Resy results...',
+          }
+        },
+        {
+          delay: 20000,
+          thought: {
+            type: 'adapting',
+            message: 'Yelp has more reviews but no direct booking — extracting ratings to validate choices.',
+            reasoning: 'Using Yelp for social proof, Resy/OpenTable for booking'
+          }
+        },
+        {
+          delay: 27000,
+          thought: {
+            type: 'success',
+            message: 'Found 4 great options. Ranking by your preferences: romantic vibe, $$$, tonight...',
+          }
+        },
+      ];
+
+      thoughtSequence.forEach(({ delay, thought }) => {
+        setTimeout(() => setAgentThought(thought), delay);
       });
 
-      setTimeout(() => {
-        setPhase('running');
+      // Start ALL lanes nearly simultaneously (small stagger for visual effect)
+      // but have them COMPLETE at different staggered times over ~30 seconds
+      const completionTimes = [8000, 14000, 18000, 24000, 28000]; // When each lane finishes
 
-        // Thought sequence during search (slower pacing for readability)
-        const thoughtSequence: { delay: number; thought: AgentThought }[] = [
-          {
-            delay: 1500,
-            thought: {
-              type: 'analyzing',
-              message: 'Resy showing 3 restaurants matching your criteria... checking reservation slots.',
-            }
-          },
-          {
-            delay: 4000,
-            thought: {
-              type: 'analyzing',
-              message: 'Found availability at Lucia — 4.8 stars, romantic lighting mentioned in 12 reviews.',
-              reasoning: 'Cross-referencing ratings with atmosphere keywords'
-            }
-          },
-          {
-            delay: 6500,
-            thought: {
-              type: 'executing',
-              message: 'OpenTable search complete. Comparing pricing tiers with Resy results...',
-            }
-          },
-          {
-            delay: 8500,
-            thought: {
-              type: 'adapting',
-              message: 'Yelp has more reviews but no direct booking — extracting ratings to validate choices.',
-              reasoning: 'Using Yelp for social proof, Resy/OpenTable for booking'
-            }
-          },
-          {
-            delay: 10500,
-            thought: {
-              type: 'success',
-              message: 'Found 4 great options. Ranking by your preferences: romantic vibe, $$$, tonight...',
-            }
-          },
-        ];
+      allLanes.forEach((lane, i) => {
+        const mockResult = getMockResult(lane.id);
+        const startDelay = 500 + (i * 400); // Start all within first 2.5 seconds
+        const completionTime = completionTimes[i] || 25000;
+        const duration = completionTime - startDelay;
 
-        thoughtSequence.forEach(({ delay, thought }) => {
-          setTimeout(() => setAgentThought(thought), delay);
-        });
-
-        allLanes.forEach((lane, i) => {
-          const mockResult = getMockResult(lane.id);
-          const baseDelay = 200 + (i * 400);
-
-          setTimeout(() => updateLane(lane.id, { status: 'navigating', progress: 25, currentAction: 'Searching...' }), baseDelay);
-          setTimeout(() => updateLane(lane.id, { status: 'extracting', progress: 60, currentAction: 'Extracting...' }), baseDelay + 800);
-          setTimeout(() => updateLane(lane.id, { status: 'extracting', progress: 85, currentAction: 'Verifying...' }), baseDelay + 1400);
-          setTimeout(() => updateLane(lane.id, { status: 'complete', progress: 100, result: mockResult }), baseDelay + 2000);
-        });
-
+        // All lanes start nearly together
+        setTimeout(() => updateLane(lane.id, { status: 'navigating', progress: 15, currentAction: 'Loading page...' }), startDelay);
+        setTimeout(() => updateLane(lane.id, { status: 'navigating', progress: 30, currentAction: 'Searching...' }), startDelay + duration * 0.2);
+        setTimeout(() => updateLane(lane.id, { status: 'extracting', progress: 50, currentAction: 'Found results...' }), startDelay + duration * 0.5);
+        setTimeout(() => updateLane(lane.id, { status: 'extracting', progress: 75, currentAction: 'Extracting data...' }), startDelay + duration * 0.75);
         setTimeout(() => {
-          setPhase('synthesizing');
-          setAgentThought({
-            type: 'analyzing',
-            message: 'Analyzing 4 options across price, reviews, atmosphere, and availability...',
-          });
-          setTimeout(() => {
-            setPhase('complete');
-            setAgentThought(null);
-          }, 800);
-        }, 3500);
-      }, 400);
-    }, 800);
+          updateLane(lane.id, { status: 'complete', progress: 100, result: mockResult });
+        }, completionTime);
+      });
+
+      // Move to synthesizing after all lanes complete (~30 seconds)
+      setTimeout(() => {
+        setPhase('synthesizing');
+        setAgentThought(null);
+      }, 30000);
+    }, 600);
   }, [getMockResult, updateLane]);
 
+  // Called when synthesis animation completes
+  const handleSynthesisComplete = useCallback(() => {
+    setPhase('complete');
+  }, []);
+
+  // Skip to completed state for results view
+  const skipToComplete = useCallback(() => {
+    const completedLanes: DemoLane[] = DATE_NIGHT_RESULTS.map(r => ({
+      id: r.id,
+      site: r.site,
+      domain: r.site.toLowerCase().replace(/\s+/g, '') + '.com',
+      status: 'complete' as LaneStatus,
+      progress: 100,
+      currentAction: 'Done',
+      result: r,
+    }));
+    setLanes(completedLanes);
+    setPhase('complete');
+    setFiltersExpanded(false);
+    setSourcesExpanded(false);
+    setAgentThought(null);
+  }, []);
+
   useEffect(() => {
-    const timer = setTimeout(startDemo, 500);
-    return () => clearTimeout(timer);
-  }, [startDemo]);
+    if (isResultsView) {
+      skipToComplete();
+    } else {
+      const timer = setTimeout(startDemo, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isResultsView, skipToComplete, startDemo]);
 
   useEffect(() => {
     if (phase === 'complete' && resultsRef.current) {
@@ -500,7 +608,7 @@ export default function DateNightCascadePage() {
   }, [phase]);
 
   const totalComplete = lanes.filter(l => l.status === 'complete').length;
-  const isSearching = phase !== 'idle' && phase !== 'complete' && phase !== 'ready';
+  const isSearching = phase === 'spawning' || phase === 'running';
   const selectedLane = lanes.find(l => l.id === selectedLaneId);
 
   // Transparency data
@@ -522,7 +630,7 @@ export default function DateNightCascadePage() {
   ];
 
   const whatsNextActions = [
-    { icon: <CalendarIcon className="w-4 h-4" />, label: 'Schedule', subtitle: 'Check for openings daily', onClick: () => setShowSignUp(true) },
+    { icon: <BellIcon className="w-4 h-4" />, label: 'Monitor for Openings', subtitle: 'Get notified when tables open up', onClick: () => setShowSignUp(true) },
     { icon: <BookmarkIcon className="w-4 h-4" />, label: 'Save', subtitle: 'Keep for later', onClick: () => setShowSignUp(true) },
     { icon: <ShareIcon className="w-4 h-4" />, label: 'Share', subtitle: 'Send link to anyone', onClick: () => setShowSignUp(true) },
   ];
@@ -530,11 +638,12 @@ export default function DateNightCascadePage() {
   return (
     <DemoLayout
       onRestart={startDemo}
+      onSignUp={() => setShowSignUp(true)}
+      query={DATE_NIGHT_QUERY}
       overlay={
         <SignUpOverlay
           isOpen={showSignUp}
           onClose={() => setShowSignUp(false)}
-          accentColor="cyan"
           subtitle="Save your reservations, get alerts, and more"
         />
       }
@@ -542,11 +651,11 @@ export default function DateNightCascadePage() {
       <TimelineContainer>
         {/* Step 1: Query + Filters */}
         <TimelineStep
-          icon={<SparklesIcon className="w-3.5 h-3.5" />}
+          icon={<SearchIcon className="w-3.5 h-3.5" />}
           isActive={phase === 'ready' || phase === 'idle'}
           isComplete={phase !== 'ready' && phase !== 'idle'}
           accentColor="cyan"
-          showConnector={isSearching || phase === 'complete'}
+          showConnector={phase === 'planning' || isSearching || phase === 'complete'}
         >
           <div className="p-4 border-b border-white/10">
             <div className="text-white/50 text-xs uppercase tracking-wider mb-1">Finding</div>
@@ -565,14 +674,24 @@ export default function DateNightCascadePage() {
           </SearchFiltersWrapper>
         </TimelineStep>
 
-        {/* Step 2: Sources + Browser */}
-        {(isSearching || phase === 'complete') && (
+        {/* Step 2: Planning */}
+        <PlanningStep
+          isPlanning={phase === 'planning'}
+          isVisible={phase === 'planning' || isSearching || phase === 'complete'}
+          showConnector={isSearching || phase === 'complete'}
+          sites={LANES_DATA}
+          accentColor="cyan"
+          onPlanningComplete={handlePlanningComplete}
+        />
+
+        {/* Step 3: Sources + Browser */}
+        {(isSearching || phase === 'synthesizing' || phase === 'complete') && (
           <TimelineStep
             icon={<SearchIcon className="w-3.5 h-3.5" />}
             isActive={isSearching}
-            isComplete={phase === 'complete'}
+            isComplete={phase === 'synthesizing' || phase === 'complete'}
             accentColor="cyan"
-            showConnector={phase === 'complete'}
+            showConnector={phase === 'synthesizing' || phase === 'complete'}
           >
             <button
               onClick={() => phase === 'complete' && setSourcesExpanded(!sourcesExpanded)}
@@ -635,7 +754,24 @@ export default function DateNightCascadePage() {
           </TimelineStep>
         )}
 
-        {/* Step 3: Results */}
+        {/* Step 4: Synthesis */}
+        <SynthesisStep
+          isSynthesizing={phase === 'synthesizing'}
+          isVisible={phase === 'synthesizing' || phase === 'complete'}
+          showConnector={phase === 'complete'}
+          sourcesCount={lanes.length}
+          resultsCount={lanes.filter(l => l.result?.restaurant).length}
+          analysisPoints={[
+            { id: 'ratings', label: 'Evaluating ratings & reviews', icon: '⭐' },
+            { id: 'atmosphere', label: 'Checking atmosphere match', icon: '🕯️' },
+            { id: 'availability', label: 'Verifying availability tonight', icon: '📅' },
+            { id: 'ranking', label: 'Ranking by your preferences', icon: '🎯' },
+          ]}
+          accentColor="cyan"
+          onSynthesisComplete={handleSynthesisComplete}
+        />
+
+        {/* Step 5: Results */}
         {phase === 'complete' && (
           <TimelineResultStep
             ref={resultsRef}
@@ -649,7 +785,13 @@ export default function DateNightCascadePage() {
               </span>
             </div>
             <div className="p-4 space-y-6">
-              <HeroResultCard onBook={() => setShowSignUp(true)} />
+              <div className="space-y-3">
+                <h2 className="text-white/50 text-xs font-medium uppercase tracking-wider flex items-center gap-2">
+                  <StarIcon className="w-3.5 h-3.5 text-cyan-400" />
+                  Top Pick
+                </h2>
+                <HeroResultCard onBook={() => setShowSignUp(true)} />
+              </div>
               {alternativeResults.length > 0 && (
                 <div className="space-y-3">
                   <h2 className="text-white/60 text-sm font-medium uppercase tracking-wider px-1">Other Options</h2>
@@ -664,7 +806,7 @@ export default function DateNightCascadePage() {
           </TimelineResultStep>
         )}
 
-        {/* Step 4: What's Next */}
+        {/* Step 6: What's Next */}
         {phase === 'complete' && (
           <TimelineFinalStep
             icon={<ArrowRightIcon className="w-3.5 h-3.5" />}

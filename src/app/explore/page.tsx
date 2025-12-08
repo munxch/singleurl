@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { BottomNav } from '@/components/ui';
+import { Sidebar } from '@/components/ui/Sidebar';
+import { SearchIcon, LoaderIcon, ChevronLeftIcon, ChevronRightIcon, MapPinIcon, MicIcon, PaperclipIcon, SendIcon } from '@/components/icons';
 import { MinoLogo } from '@/components/icons/MinoLogo';
-import { SearchIcon, ArrowRightIcon, LoaderIcon, ChevronLeftIcon, ChevronRightIcon, MapPinIcon, UserIcon } from '@/components/icons';
 import { generateJobId } from '@/lib/persistence';
+import { SignUpOverlay } from '@/components/demo/layout/SignUpOverlay';
 
 // =============================================================================
 // EXAMPLE CARDS DATA
@@ -438,9 +438,12 @@ function CategoryRow({ category, onSelectExample }: {
 
 export default function ExplorePage() {
   const router = useRouter();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const spotlightInputRef = useRef<HTMLTextAreaElement>(null);
   const [query, setQuery] = useState('');
   const [isNavigating, setIsNavigating] = useState(false);
+  const [showSignUp, setShowSignUp] = useState(false);
+  const [isSpotlightOpen, setIsSpotlightOpen] = useState(false);
+  const [isGlowing, setIsGlowing] = useState(false);
 
   const handleSubmit = useCallback(() => {
     if (query.trim().length < 5 || isNavigating) return;
@@ -450,108 +453,197 @@ export default function ExplorePage() {
     router.push(`/search/${jobId}?q=${encodeURIComponent(query.trim())}`);
   }, [query, isNavigating, router]);
 
-  const handleSelectExample = useCallback((exampleQuery: string) => {
-    setQuery(exampleQuery);
-    inputRef.current?.focus();
-    setTimeout(() => inputRef.current?.select(), 0);
+  const openSpotlight = useCallback((initialQuery?: string) => {
+    if (initialQuery) {
+      setQuery(initialQuery);
+      setIsGlowing(true);
+      setTimeout(() => setIsGlowing(false), 600);
+    }
+    setIsSpotlightOpen(true);
+    // Focus after animation
+    setTimeout(() => spotlightInputRef.current?.focus(), 100);
   }, []);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
+  const closeSpotlight = useCallback(() => {
+    if (!isNavigating) {
+      setIsSpotlightOpen(false);
+      setQuery('');
     }
-  };
+  }, [isNavigating]);
+
+  // Handle escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isSpotlightOpen) {
+        closeSpotlight();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSpotlightOpen, closeSpotlight]);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0a1628]">
+      {/* Sidebar */}
+      <Sidebar onSignUp={() => setShowSignUp(true)} />
+
       {/* Background effects */}
-      <div className="ocean-bg" />
-      <div className="wave-overlay" />
+      <div className="ocean-bg pointer-events-none" />
+      <div className="wave-overlay pointer-events-none" />
 
       {/* Content */}
       <div className="content flex-1 flex flex-col">
         {/* Header */}
-        <header className="sticky top-0 z-50 w-full animate-fadeInUp" style={{ animationDelay: '0ms' }}>
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0a1628] via-[#0a1628]/98 to-transparent pointer-events-none" />
+        <header className="sticky top-0 z-30 bg-[#0a1628]/80 backdrop-blur-sm animate-fadeInUp" style={{ animationDelay: '0ms' }}>
+          <div className="relative px-6 py-3">
+            <div className="flex items-center justify-between gap-4">
+              {/* Left spacer - accounts for menu button */}
+              <div className="w-24 flex-shrink-0" />
 
-          <div className="relative px-6 py-4">
-            <div className="flex items-center justify-between">
-              {/* Left: Logo */}
-              <Link href="/" className="flex-shrink-0">
-                <MinoLogo className="h-5" />
-              </Link>
-
-              {/* Center: Search */}
-              <div className="flex-1 max-w-md mx-4">
-                <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-white/[0.08] border border-white/[0.1] focus-within:border-white/20 focus-within:bg-white/[0.1] transition-all">
-                  <div className="text-white/40">
-                    {isNavigating ? (
-                      <LoaderIcon className="w-4 h-4 animate-spin text-blue-400" />
-                    ) : (
-                      <SearchIcon className="w-4 h-4" />
-                    )}
-                  </div>
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="What are you looking for?"
-                    className="flex-1 bg-transparent text-white text-sm placeholder-white/40 focus:outline-none"
-                    disabled={isNavigating}
-                  />
-                  {query.trim().length >= 5 && (
-                    <button
-                      onClick={handleSubmit}
-                      disabled={isNavigating}
-                      className="p-1.5 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors"
-                    >
-                      <ArrowRightIcon className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
+              {/* Center: Search trigger */}
+              <div className="flex-1 max-w-md">
+                <button
+                  onClick={() => openSpotlight()}
+                  className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-white/[0.08] border border-white/[0.1] hover:border-white/20 hover:bg-white/[0.1] transition-all text-left"
+                >
+                  <SearchIcon className="w-4 h-4 text-white/40" />
+                  <span className="text-white/40 text-sm">What are you looking for?</span>
+                </button>
               </div>
 
-              {/* Right: Location + Profile */}
-              <div className="flex items-center gap-1">
+              {/* Right: Sign up */}
+              <div className="w-24 flex-shrink-0 flex justify-end">
                 <button
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] transition-all"
-                  title="Location"
+                  onClick={() => setShowSignUp(true)}
+                  className="px-3 py-1 text-sm text-white/70 hover:text-white rounded-full border border-white/20 hover:border-white/40 hover:bg-white/5 transition-all whitespace-nowrap"
                 >
-                  <MapPinIcon className="w-4 h-4 text-white/60" />
-                  <span className="text-white/70 text-xs font-medium">Dallas</span>
-                </button>
-                <button
-                  className="p-2 rounded-full bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] transition-all"
-                  title="Account"
-                >
-                  <UserIcon className="w-5 h-5 text-white/60" />
+                  Sign up
                 </button>
               </div>
             </div>
           </div>
 
           {/* Subtle divider */}
-          <div className="absolute bottom-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
         </header>
 
         {/* Categories */}
-        <main className="flex-1 pt-6 space-y-8 pb-24">
+        <main className="flex-1 pt-6 space-y-8 pb-12">
           {CATEGORIES.map((category, index) => (
             <div key={category.id} className="animate-fadeInUp" style={{ animationDelay: `${50 + index * 75}ms` }}>
               <CategoryRow
                 category={category}
-                onSelectExample={handleSelectExample}
+                onSelectExample={(query) => openSpotlight(query)}
               />
             </div>
           ))}
         </main>
       </div>
 
-      {/* Bottom Navigation */}
-      <BottomNav />
+      {/* Sign up modal */}
+      <SignUpOverlay
+        isOpen={showSignUp}
+        onClose={() => setShowSignUp(false)}
+      />
+
+      {/* Spotlight Search Overlay */}
+      {isSpotlightOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-[#0a1628]/90 backdrop-blur-md animate-fadeIn"
+            onClick={closeSpotlight}
+          />
+
+          {/* Spotlight content */}
+          <div className="relative w-full max-w-xl mx-6 animate-scaleIn">
+            {/* Logo */}
+            <div className="flex justify-center mb-8">
+              <MinoLogo />
+            </div>
+
+            {/* Search Input - styled like home page */}
+            <div className={`relative rounded-2xl bg-white/[0.08] border transition-all duration-300 ${
+              isGlowing
+                ? 'border-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.4),0_0_40px_rgba(34,211,238,0.2)]'
+                : 'border-white/[0.1] shadow-lg shadow-black/20 focus-within:border-white/25 focus-within:bg-white/[0.1]'
+            }`}>
+              {/* Textarea */}
+              <textarea
+                ref={spotlightInputRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit();
+                  }
+                }}
+                placeholder="What are you looking for?"
+                rows={1}
+                className="w-full bg-transparent text-white text-base placeholder-white/40 focus:outline-none resize-none px-4 pt-4 pb-2 min-h-[52px] max-h-[200px]"
+                disabled={isNavigating}
+                style={{ height: 'auto' }}
+                onInput={(e) => {
+                  const target = e.target as HTMLTextAreaElement;
+                  target.style.height = 'auto';
+                  target.style.height = Math.min(target.scrollHeight, 200) + 'px';
+                }}
+              />
+
+              {/* Bottom toolbar */}
+              <div className="flex items-center justify-between px-3 pb-3">
+                {/* Left: Location */}
+                <div className="flex items-center">
+                  <button
+                    className="p-2 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] transition-all text-cyan-400"
+                    title="Set location"
+                  >
+                    <MapPinIcon className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Right: Attachment, Mic, Send */}
+                <div className="flex items-center gap-1">
+                  <button
+                    className="p-2 rounded-xl hover:bg-white/[0.08] transition-all text-white/40 hover:text-white/60"
+                    title="Attach file"
+                  >
+                    <PaperclipIcon className="w-4 h-4" />
+                  </button>
+                  <button
+                    className="p-2 rounded-xl hover:bg-white/[0.08] transition-all text-white/40 hover:text-white/60"
+                    title="Voice input"
+                  >
+                    <MicIcon className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={handleSubmit}
+                    disabled={query.trim().length < 5 || isNavigating}
+                    className={`p-2 rounded-xl transition-all ${
+                      query.trim().length >= 5 && !isNavigating
+                        ? 'bg-cyan-500 text-white hover:bg-cyan-600'
+                        : 'bg-white/[0.06] text-white/30 cursor-not-allowed'
+                    }`}
+                    title="Send"
+                  >
+                    {isNavigating ? (
+                      <LoaderIcon className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <SendIcon className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Hint text */}
+            <div className="mt-4 text-center">
+              <span className="text-white/30 text-sm">Press <kbd className="px-1.5 py-0.5 rounded bg-white/10 text-white/50 text-xs">Esc</kbd> to close</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

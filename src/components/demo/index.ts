@@ -11,6 +11,8 @@ export {
   TimelineStep,
   TimelineResultStep,
   TimelineFinalStep,
+  PlanningStep,
+  SynthesisStep,
 } from './timeline';
 
 // Source components
