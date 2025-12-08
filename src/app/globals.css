@@ -13,7 +13,7 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100vh;
-  background: linear-gradient(180deg, #0a1628 0%, #0c1e38 50%, #0e2240 100%);
+  background: #0a1628;
   overflow-x: hidden;
 }
 
@@ -24,12 +24,60 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background:
-    radial-gradient(ellipse at 50% 100%, rgba(20, 60, 100, 0.25) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 80%, rgba(30, 70, 110, 0.2) 0%, transparent 40%),
-    radial-gradient(ellipse at 20% 70%, rgba(15, 50, 90, 0.2) 0%, transparent 50%),
-    linear-gradient(180deg, #0a1628 0%, #0c1e38 40%, #0e2848 100%);
+  background: #0a1628;
   z-index: 0;
+  overflow: hidden;
+}
+
+/* Animated gradient blob 1 */
+.ocean-bg::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at center, rgba(20, 60, 100, 0.15) 0%, transparent 50%);
+  animation: blob-drift-1 15s ease-in-out infinite;
+}
+
+/* Animated gradient blob 2 */
+.ocean-bg::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at center, rgba(10, 40, 80, 0.12) 0%, transparent 45%);
+  animation: blob-drift-2 20s ease-in-out infinite;
+}
+
+@keyframes blob-drift-1 {
+  0%, 100% {
+    transform: translate(0%, 0%);
+  }
+  25% {
+    transform: translate(10%, 5%);
+  }
+  50% {
+    transform: translate(5%, 15%);
+  }
+  75% {
+    transform: translate(-5%, 10%);
+  }
+}
+
+@keyframes blob-drift-2 {
+  0%, 100% {
+    transform: translate(10%, 10%);
+  }
+  33% {
+    transform: translate(-5%, 5%);
+  }
+  66% {
+    transform: translate(15%, -5%);
+  }
 }
 
 /* Animated wave overlay */

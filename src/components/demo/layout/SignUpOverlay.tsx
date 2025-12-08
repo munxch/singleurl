@@ -53,7 +53,7 @@ export function SignUpOverlay({
         }`}
         onClick={onClose}
       />
-      <div className={`relative w-full max-w-md p-6 rounded-2xl bg-[#0c1e38] border border-white/20 shadow-2xl transition-all duration-200 ${
+      <div className={`relative w-full max-w-md p-6 rounded-2xl bg-[#0a1628] border border-white/20 shadow-2xl transition-all duration-200 ${
         isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
       }`}>
         <button
