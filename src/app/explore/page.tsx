@@ -28,6 +28,61 @@ interface Category {
 
 const CATEGORIES: Category[] = [
   {
+    id: 'business',
+    label: 'Sales & Research',
+    examples: [
+      {
+        id: 'cfo-search',
+        title: 'Find Decision Makers',
+        query: 'Find me CFOs at hospitality companies in DFW',
+        emoji: '💼',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
+      },
+      {
+        id: 'lead-gen',
+        title: 'Build a Lead List',
+        query: 'Find marketing directors at SaaS companies in Austin',
+        emoji: '📋',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
+      },
+      {
+        id: 'competitor-pricing',
+        title: 'Research Competitor Pricing',
+        query: 'What are competitors charging for project management software?',
+        emoji: '💰',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
+      },
+      {
+        id: 'market-research',
+        title: 'Track Market Trends',
+        query: 'Find companies that raised Series A in fintech this quarter',
+        emoji: '📈',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
+      },
+      {
+        id: 'hiring-intel',
+        title: 'Monitor Competitor Hiring',
+        query: 'What roles are my competitors hiring for right now?',
+        emoji: '👀',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
+      },
+      {
+        id: 'vendor-search',
+        title: 'Find Vendors & Partners',
+        query: 'Find agencies that specialize in Shopify development',
+        emoji: '🤝',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
+      },
+      {
+        id: 'local-business',
+        title: 'Find Local Businesses',
+        query: 'Find restaurant owners in Dallas who opened in the last year',
+        emoji: '🏪',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
+      },
+    ],
+  },
+  {
     id: 'dining',
     label: 'Dining & Nightlife',
     examples: [
@@ -36,49 +91,49 @@ const CATEGORIES: Category[] = [
         title: 'Find a Date Night Reservation',
         query: 'Date night tonight in Dallas, nice Italian, 7pm for 2',
         emoji: '🍝',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'group-dinner',
         title: 'Book a Group Dinner',
         query: 'Restaurant for 8 people Saturday night in Austin with private room',
         emoji: '🎉',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'brunch',
         title: 'Find the Best Brunch',
         query: 'Best brunch near me with outdoor seating and mimosas',
         emoji: '🥂',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'late-night',
         title: 'Find Late Night Eats',
         query: 'Restaurants open after midnight near downtown',
         emoji: '🌙',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'happy-hour',
         title: 'Find Happy Hour Spots',
         query: 'Best happy hour deals near me with good appetizers',
         emoji: '🍻',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'rooftop-bar',
         title: 'Discover Rooftop Bars',
         query: 'Rooftop bars in downtown with city views',
         emoji: '🌃',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'coffee-shop',
         title: 'Find a Coffee Shop',
         query: 'Quiet coffee shops near me good for working',
         emoji: '☕',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
     ],
   },
@@ -91,49 +146,49 @@ const CATEGORIES: Category[] = [
         title: 'Search Used Car Inventory',
         query: 'Find a used Honda Civic under $25k, under 50k miles, with Apple CarPlay',
         emoji: '🚗',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'lease-deals',
         title: 'Find the Best Lease Deals',
         query: 'Best lease deals on electric SUVs in my area',
         emoji: '⚡',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'compare-trucks',
         title: 'Compare Pickup Trucks',
         query: 'Compare Ford F-150 vs Toyota Tundra vs Chevy Silverado 2024',
         emoji: '🛻',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'electric-cars',
         title: 'Find Electric Vehicles',
         query: 'Best used electric cars under $35k with 200+ mile range',
         emoji: '🔋',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'suv-search',
         title: 'Search Family SUVs',
         query: 'Used 3-row SUV under $40k with good safety ratings',
         emoji: '🚙',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'motorcycle',
         title: 'Find a Motorcycle',
         query: 'Used Harley Davidson under $15k in good condition',
         emoji: '🏍️',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'car-value',
         title: 'Check Car Trade-In Value',
         query: 'What is my 2019 Toyota Camry worth for trade-in?',
         emoji: '💰',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
     ],
   },
@@ -146,28 +201,28 @@ const CATEGORIES: Category[] = [
         title: 'Search for Flights',
         query: 'Flights from San Francisco to Tokyo in March',
         emoji: '✈️',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'hotels',
         title: 'Find Hotel Deals',
         query: 'Hotels in NYC for New Years Eve under $300/night',
         emoji: '🏨',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'vacation-rental',
         title: 'Book a Vacation Rental',
         query: 'Beach house in Malibu for a week in July, sleeps 6',
         emoji: '🏖️',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'rental-car',
         title: 'Compare Rental Cars',
         query: 'SUV rental in Maui for March 15-22',
         emoji: '🚙',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'cruise',
@@ -181,14 +236,14 @@ const CATEGORIES: Category[] = [
         title: 'Book a Ski Trip',
         query: 'Ski resorts in Colorado with lodging for a family of 4',
         emoji: '⛷️',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'all-inclusive',
         title: 'Find All-Inclusive Resorts',
         query: 'All-inclusive resorts in Mexico for couples under $300/night',
         emoji: '🌴',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
     ],
   },
@@ -201,7 +256,7 @@ const CATEGORIES: Category[] = [
         title: 'Price Check Electronics',
         query: 'Find the best price for AirPods Pro 2nd generation',
         emoji: '🎧',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'in-stock',
@@ -215,35 +270,35 @@ const CATEGORIES: Category[] = [
         title: 'Compare TV Prices',
         query: 'Compare prices for LG C4 65 inch OLED TV',
         emoji: '📺',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'deals',
         title: 'Find Deals & Coupons',
         query: 'Find deals or coupons for Dyson vacuums',
         emoji: '🏷️',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'laptop',
         title: 'Compare Laptops',
         query: 'Best laptop for video editing under $2000',
         emoji: '💻',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'gaming',
         title: 'Find Gaming Deals',
         query: 'Best price on PS5 with extra controller bundle',
         emoji: '🎮',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'appliance',
         title: 'Compare Appliance Prices',
         query: 'Best price on Samsung Bespoke refrigerator',
         emoji: '🧊',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
     ],
   },
@@ -256,49 +311,49 @@ const CATEGORIES: Category[] = [
         title: 'Find Contractors',
         query: 'Find HVAC contractors in Austin with good reviews',
         emoji: '🔧',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'insurance',
         title: 'Compare Insurance Quotes',
         query: 'Compare auto insurance for a 2023 Toyota RAV4 in California',
         emoji: '🛡️',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'movers',
         title: 'Get Moving Quotes',
         query: 'Moving companies in Chicago for 2 bedroom apartment',
         emoji: '📦',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'cleaning',
         title: 'Find Cleaning Services',
         query: 'House cleaning services in Seattle with weekly availability',
         emoji: '🧹',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'plumber',
         title: 'Find a Plumber',
         query: 'Emergency plumbers available now in my area',
         emoji: '🚿',
-        gradient: 'from-blue-500/30 to-sky-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'electrician',
         title: 'Find an Electrician',
         query: 'Licensed electricians for home rewiring project',
         emoji: '💡',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
       {
         id: 'lawn-care',
         title: 'Get Lawn Care Quotes',
         query: 'Lawn care services with weekly mowing in my neighborhood',
         emoji: '🌱',
-        gradient: 'from-blue-500/30 to-cyan-500/20',
+        gradient: 'from-blue-500/30 to-indigo-500/20',
       },
     ],
   },
@@ -375,8 +430,8 @@ function CategoryRow({ category, onSelectExample }: {
   return (
     <div className="relative overflow-visible">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4 px-6">
-        <h2 className="text-lg font-medium text-white">
+      <div className="flex items-center justify-between mb-3 px-6">
+        <h2 className="text-sm font-medium text-white/70 uppercase tracking-wider">
           {category.label}
         </h2>
 
@@ -528,7 +583,10 @@ export default function ExplorePage() {
         </header>
 
         {/* Categories */}
-        <main className="flex-1 pt-6 space-y-8 pb-12">
+        <main className="flex-1 pt-8 space-y-8 pb-12">
+          <h1 className="text-4xl font-bold text-white px-6 animate-fadeInUp">
+            Explore what's possible
+          </h1>
           {CATEGORIES.map((category, index) => (
             <div key={category.id} className="animate-fadeInUp" style={{ animationDelay: `${50 + index * 75}ms` }}>
               <CategoryRow
