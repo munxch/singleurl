@@ -1,36 +1,79 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Demo Repo
+
+Mino is a multi-session parallel search application built with Next.js. Users enter a search query, and the app launches multiple browser automation sessions in parallel across relevant sites, aggregating and synthesizing the results into a unified answer.
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+
+- npm
+
+### Installation
+
+```bash
+npm install
+```
+
+### Development
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Production Build
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+## Pages Overview
 
-To learn more about Next.js, take a look at the following resources:
+### `/` - Home
+The main landing page with a search input and quick-start examples. Users can enter natural language queries like "Find a 2024 Lexus GX in Dallas" or select from featured examples to see Mino in action.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### `/explore` - Explore Examples
+A gallery of example queries organized by category (Sales & Research, Shopping, Local, etc.). Browse different use cases to understand what Mino can do.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### `/explore/flow` - Voice Flow Demo
+An interactive voice-first interface featuring an animated audio orb. Tap to activate, speak your query, and watch Mino process it in real-time. Includes a demo of the CFO search workflow.
 
-## Deploy on Vercel
+### Demo Pages
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+These pages showcase polished, scripted demonstrations of specific search workflows:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+#### `/demo/date-night-cascade`
+Restaurant reservation search demo. Shows Mino searching OpenTable, Resy, Yelp, and Google Maps to find Italian restaurants in Dallas for a date night, with availability checking and booking options.
+
+#### `/demo/car-search-cascade`
+Vehicle inventory search demo. Shows Mino searching multiple dealership sites to find a specific car (2024 Lexus GX Overtrail), comparing prices, mileage, and features across dealers.
+
+#### `/demo/cfo-search-cascade`
+B2B lead generation demo. Shows Mino searching LinkedIn, Apollo, ZoomInfo, and company websites to find CFOs at hospitality companies, with contact info verification and data enrichment.
+
+## Tech Stack
+
+- **Framework**: Next.js 16 with App Router
+- **Styling**: Tailwind CSS 4
+- **3D Graphics**: Three.js (for the audio orb visualization)
+- **Language**: TypeScript
+
+## Project Structure
+
+```
+src/
+├── app/                    # Next.js app router pages
+│   ├── demo/              # Scripted demo experiences
+│   ├── explore/           # Example gallery & voice flow
+│   └── page.tsx           # Home page
+├── components/
+│   ├── demo/              # Demo-specific components
+│   ├── icons/             # SVG icon components
+│   └── ui/                # Reusable UI components
+├── hooks/                 # React hooks (useOrchestrator, etc.)
+├── lib/                   # Utilities, API client, mock data
+└── types/                 # TypeScript type definitions
+```
