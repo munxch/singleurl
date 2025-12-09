@@ -758,7 +758,18 @@ export default function CarSearchCascadePage() {
       return () => clearTimeout(timer);
     }
   }, [isResultsView, skipToComplete, startDemo]);
-  useEffect(() => { if (phase === 'complete' && resultsRef.current) setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300); }, [phase]);
+  useEffect(() => {
+    if (phase === 'complete' && resultsRef.current) {
+      setTimeout(() => {
+        const element = resultsRef.current;
+        if (element) {
+          const headerOffset = 80;
+          const elementPosition = element.getBoundingClientRect().top + window.scrollY;
+          window.scrollTo({ top: elementPosition - headerOffset, behavior: 'smooth' });
+        }
+      }, 300);
+    }
+  }, [phase]);
 
   const totalComplete = lanes.filter(l => l.status === 'complete' || l.status === 'blocked').length;
   const isSearching = phase === 'analyzing' || phase === 'spawning_wave1' || phase === 'running_wave1' || phase === 'escalation_pause' || phase === 'escalation_message' || phase === 'spawning_wave2' || phase === 'running_wave2';

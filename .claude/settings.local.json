@@ -10,7 +10,8 @@
       "WebSearch",
       "mcp__ide__getDiagnostics",
       "Bash(npm install:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []

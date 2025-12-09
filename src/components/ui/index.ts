@@ -1,17 +1,2 @@
-export { ThinkingBubble } from './ThinkingBubble';
-export { BrowserViewer } from './BrowserViewer';
-export { SessionEventsPanel } from './SessionEventsPanel';
-export { SearchInput } from './SearchInput';
-export { QueryEnricher } from './QueryEnricher';
-export { OrchestraProgress } from './OrchestraProgress';
-export { ResultsAggregator } from './ResultsAggregator';
-export { JobsBar } from './JobsBar';
-export { ExampleCards } from './ExampleCards';
-export { JobFeed } from './JobFeed';
-export { JobFeedItem } from './JobFeedItem';
-export { BottomNav } from './BottomNav';
-export { Navbar } from './Navbar';
-export { ConversationThread } from './ConversationThread';
-export { FollowUpSuggestions } from './FollowUpSuggestions';
-export { SearchThread } from './SearchThread';
-export { SignupModal } from './SignupModal';
+// UI Components - cleaned up exports
+// Sidebar, AudioOrb, and DataTable are imported directly from their files

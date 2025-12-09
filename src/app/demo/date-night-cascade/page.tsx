@@ -603,7 +603,14 @@ export default function DateNightCascadePage() {
 
   useEffect(() => {
     if (phase === 'complete' && resultsRef.current) {
-      setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+      setTimeout(() => {
+        const element = resultsRef.current;
+        if (element) {
+          const headerOffset = 80;
+          const elementPosition = element.getBoundingClientRect().top + window.scrollY;
+          window.scrollTo({ top: elementPosition - headerOffset, behavior: 'smooth' });
+        }
+      }, 300);
     }
   }, [phase]);
 
