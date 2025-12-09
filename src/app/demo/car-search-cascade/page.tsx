@@ -484,6 +484,8 @@ export default function CarSearchCascadePage() {
   const [showEscalation, setShowEscalation] = useState(false);
   const [selectedLaneId, setSelectedLaneId] = useState<string | null>(null);
   const [showSignUp, setShowSignUp] = useState(false);
+  const [signupContext, setSignupContext] = useState<string>('');
+  const openSignup = (context: string) => { setSignupContext(context); setShowSignUp(true); };
   const [filtersExpanded, setFiltersExpanded] = useState(true);
   const [sourcesExpanded, setSourcesExpanded] = useState(true);
   const [isThinking, setIsThinking] = useState(false);
@@ -776,17 +778,17 @@ export default function CarSearchCascadePage() {
   const selectedLane = lanes.find(l => l.id === selectedLaneId);
 
   const whatsNextActions = [
-    { icon: <BellIcon className="w-4 h-4" />, label: 'Monitor Inventory', subtitle: 'Watches for cars that meet your criteria', onClick: () => setShowSignUp(true) },
-    { icon: <BookmarkIcon className="w-4 h-4" />, label: 'Save', subtitle: 'Keep for later', onClick: () => setShowSignUp(true) },
-    { icon: <ShareIcon className="w-4 h-4" />, label: 'Share', subtitle: 'Send link to anyone', onClick: () => setShowSignUp(true) },
+    { icon: <BellIcon className="w-4 h-4" />, label: 'Monitor Inventory', subtitle: 'Watches for cars that meet your criteria', onClick: () => openSignup('Sign up to get notified when new cars match your criteria') },
+    { icon: <BookmarkIcon className="w-4 h-4" />, label: 'Save', subtitle: 'Keep for later', onClick: () => openSignup('Sign up to save this search and come back anytime') },
+    { icon: <ShareIcon className="w-4 h-4" />, label: 'Share', subtitle: 'Send link to anyone', onClick: () => openSignup('Sign up to share this search with friends or family') },
   ];
 
   return (
     <DemoLayout
       onRestart={startDemo}
-      onSignUp={() => setShowSignUp(true)}
+      onSignUp={() => openSignup('Create a free account to save your results')}
       query={CAR_SEARCH_QUERY}
-      overlay={<SignUpOverlay isOpen={showSignUp} onClose={() => setShowSignUp(false)} subtitle="Save your searches, get alerts, and more" />}
+      overlay={<SignUpOverlay isOpen={showSignUp} onClose={() => setShowSignUp(false)} subtitle={signupContext} />}
     >
       <TimelineContainer>
         {/* Step 1: Query + Filters */}
@@ -895,7 +897,7 @@ export default function CarSearchCascadePage() {
                   <StarIcon className="w-3.5 h-3.5 text-cyan-400" />
                   Top Pick
                 </h2>
-                <HeroResultCard onSchedule={() => setShowSignUp(true)} />
+                <HeroResultCard onSchedule={() => openSignup('Sign up to schedule a test drive or contact the dealer')} />
               </div>
               {(successResults.length > 0 || otherResults.length > 0) && (
                 <div className="space-y-3">
@@ -918,7 +920,7 @@ export default function CarSearchCascadePage() {
               {/* Follow-up action */}
               <div className="flex justify-center mt-4 pt-4 border-t border-white/5">
                 <button
-                  onClick={() => setShowSignUp(true)}
+                  onClick={() => openSignup('Sign up to ask follow-up questions and refine your search')}
                   className="px-4 py-2 text-sm text-white/50 hover:text-white/80 transition-colors flex items-center gap-2"
                 >
                   <MessageCircleIcon className="w-4 h-4" />

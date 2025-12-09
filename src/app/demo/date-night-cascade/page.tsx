@@ -402,6 +402,8 @@ export default function DateNightCascadePage() {
   const [lanes, setLanes] = useState<DemoLane[]>([]);
   const [selectedLaneId, setSelectedLaneId] = useState<string | null>(null);
   const [showSignUp, setShowSignUp] = useState(false);
+  const [signupContext, setSignupContext] = useState<string>('');
+  const openSignup = (context: string) => { setSignupContext(context); setShowSignUp(true); };
   const [filtersExpanded, setFiltersExpanded] = useState(true);
   const [sourcesExpanded, setSourcesExpanded] = useState(true);
   const [isThinking, setIsThinking] = useState(false);
@@ -637,21 +639,21 @@ export default function DateNightCascadePage() {
   ];
 
   const whatsNextActions = [
-    { icon: <BellIcon className="w-4 h-4" />, label: 'Monitor for Openings', subtitle: 'Get notified when tables open up', onClick: () => setShowSignUp(true) },
-    { icon: <BookmarkIcon className="w-4 h-4" />, label: 'Save', subtitle: 'Keep for later', onClick: () => setShowSignUp(true) },
-    { icon: <ShareIcon className="w-4 h-4" />, label: 'Share', subtitle: 'Send link to anyone', onClick: () => setShowSignUp(true) },
+    { icon: <BellIcon className="w-4 h-4" />, label: 'Monitor for Openings', subtitle: 'Get notified when tables open up', onClick: () => openSignup('Sign up to get notified when tables open up') },
+    { icon: <BookmarkIcon className="w-4 h-4" />, label: 'Save', subtitle: 'Keep for later', onClick: () => openSignup('Sign up to save this search and come back anytime') },
+    { icon: <ShareIcon className="w-4 h-4" />, label: 'Share', subtitle: 'Send link to anyone', onClick: () => openSignup('Sign up to share these options with your date') },
   ];
 
   return (
     <DemoLayout
       onRestart={startDemo}
-      onSignUp={() => setShowSignUp(true)}
+      onSignUp={() => openSignup('Create a free account to save your results')}
       query={DATE_NIGHT_QUERY}
       overlay={
         <SignUpOverlay
           isOpen={showSignUp}
           onClose={() => setShowSignUp(false)}
-          subtitle="Save your reservations, get alerts, and more"
+          subtitle={signupContext}
         />
       }
     >
@@ -797,14 +799,14 @@ export default function DateNightCascadePage() {
                   <StarIcon className="w-3.5 h-3.5 text-cyan-400" />
                   Top Pick
                 </h2>
-                <HeroResultCard onBook={() => setShowSignUp(true)} />
+                <HeroResultCard onBook={() => openSignup('Sign up to book this reservation')} />
               </div>
               {alternativeResults.length > 0 && (
                 <div className="space-y-3">
                   <h2 className="text-white/60 text-sm font-medium uppercase tracking-wider px-1">Other Options</h2>
                   <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
                     {alternativeResults.map(result => (
-                      <AlternativeResultCard key={result.id} result={result} onBook={() => setShowSignUp(true)} />
+                      <AlternativeResultCard key={result.id} result={result} onBook={() => openSignup('Sign up to book this reservation')} />
                     ))}
                   </div>
                 </div>
@@ -825,7 +827,7 @@ export default function DateNightCascadePage() {
               {/* Follow-up action */}
               <div className="flex justify-center mt-4 pt-4 border-t border-white/5">
                 <button
-                  onClick={() => setShowSignUp(true)}
+                  onClick={() => openSignup('Sign up to ask follow-up questions and refine your search')}
                   className="px-4 py-2 text-sm text-white/50 hover:text-white/80 transition-colors flex items-center gap-2"
                 >
                   <MessageCircleIcon className="w-4 h-4" />

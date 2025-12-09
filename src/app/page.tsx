@@ -4,7 +4,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { MinoLogo } from '@/components/icons/MinoLogo';
-import { LoaderIcon, MapPinIcon, MicIcon, PaperclipIcon, SendIcon } from '@/components/icons';
+import { ArrowRightIcon, LoaderIcon, MapPinIcon, MicIcon, PaperclipIcon } from '@/components/icons';
 import { generateJobId } from '@/lib/persistence';
 import { SignUpOverlay } from '@/components/demo/layout/SignUpOverlay';
 import { Sidebar } from '@/components/ui/Sidebar';
@@ -158,7 +158,7 @@ export default function Home() {
                       handleSubmit();
                     }
                   }}
-                  placeholder="What are you looking for?"
+                  placeholder="What can Mino do for you?"
                   rows={1}
                   className="w-full bg-transparent text-white text-base placeholder-white/40 focus:outline-none resize-none px-4 pt-4 pb-2 min-h-[52px] max-h-[200px]"
                   disabled={isNavigating}
@@ -210,7 +210,7 @@ export default function Home() {
                       {isNavigating ? (
                         <LoaderIcon className="w-4 h-4 animate-spin" />
                       ) : (
-                        <SendIcon className="w-4 h-4" />
+                        <ArrowRightIcon className="w-4 h-4" />
                       )}
                   </button>
                 </div>

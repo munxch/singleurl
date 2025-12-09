@@ -20,8 +20,8 @@ interface SignUpOverlayProps {
 export function SignUpOverlay({
   isOpen,
   onClose,
-  title = 'Sign up for Mino',
-  subtitle = 'Save your results, get alerts, and more',
+  title = "So you don't lose this",
+  subtitle = 'Create a free account to save your results',
 }: SignUpOverlayProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);

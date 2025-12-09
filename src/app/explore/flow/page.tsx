@@ -745,7 +745,7 @@ export default function FlowPage() {
               `}
             >
               <p className="text-white/40 text-sm group-hover:text-white/60 transition-colors">
-                Tap to start
+                Tap to activate Mino
               </p>
             </div>
 

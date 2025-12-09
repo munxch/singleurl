@@ -271,6 +271,8 @@ export default function CFOSearchCascadePage() {
   const [selectedLaneId, setSelectedLaneId] = useState<string | null>(null);
   const [sourcesExpanded, setSourcesExpanded] = useState(true);
   const [showSignupModal, setShowSignupModal] = useState(false);
+  const [signupContext, setSignupContext] = useState<string>('');
+  const openSignup = (context: string) => { setSignupContext(context); setShowSignupModal(true); };
   const [showNotifyPopup, setShowNotifyPopup] = useState(false);
   const [notifySubmitted, setNotifySubmitted] = useState(false);
   const [agentThought, setAgentThought] = useState<AgentThought | null>(null);
@@ -541,13 +543,13 @@ export default function CFOSearchCascadePage() {
   const selectedLane = lanes.find(l => l.id === selectedLaneId);
 
   const whatsNextActions = [
-    { icon: <CalendarIcon className="w-4 h-4" />, label: 'Schedule', subtitle: 'Run this search daily', onClick: () => setShowSignupModal(true) },
-    { icon: <UploadIcon className="w-4 h-4" />, label: 'Export', subtitle: 'Send to your tools', onClick: () => setShowSignupModal(true) },
-    { icon: <ShareIcon className="w-4 h-4" />, label: 'Share', subtitle: 'Send link to anyone', onClick: () => setShowSignupModal(true) },
+    { icon: <CalendarIcon className="w-4 h-4" />, label: 'Schedule', subtitle: 'Run this search daily', onClick: () => openSignup('Sign up to schedule this search and get fresh results daily') },
+    { icon: <UploadIcon className="w-4 h-4" />, label: 'Export', subtitle: 'Send to your tools', onClick: () => openSignup('Sign up to export these contacts to your CRM or spreadsheet') },
+    { icon: <ShareIcon className="w-4 h-4" />, label: 'Share', subtitle: 'Send link to anyone', onClick: () => openSignup('Sign up to share this search with your team') },
   ];
 
   return (
-    <DemoLayout onRestart={startDemo} onSignUp={() => setShowSignupModal(true)} query={CFO_SEARCH_QUERY}>
+    <DemoLayout onRestart={startDemo} onSignUp={() => openSignup('Create a free account to save your results')} query={CFO_SEARCH_QUERY}>
       <TimelineContainer>
         {/* Step 1: Query */}
         <TimelineStep icon={<SearchIcon className="w-3.5 h-3.5" />} isActive={phase === 'idle'} isComplete={phase !== 'idle'} accentColor="cyan" showConnector={phase !== 'idle'}>
@@ -642,7 +644,7 @@ export default function CFOSearchCascadePage() {
               <span className="text-white/80 font-medium">Results</span>
               <span className="text-white/40 text-sm">{CFO_SEARCH_SYNTHESIS.stats.totalFound} contacts found</span>
             </div>
-            <CFOResultsTable onOpenSignup={() => setShowSignupModal(true)} />
+            <CFOResultsTable onOpenSignup={() => openSignup('Sign up to view full contact details and export to your CRM')} />
             <InsightsPanel />
             <div className="p-4 pt-2">
               <NewHireAlertSetup />
@@ -659,7 +661,7 @@ export default function CFOSearchCascadePage() {
               {/* Follow-up action */}
               <div className="flex justify-center mt-4 pt-4 border-t border-white/5">
                 <button
-                  onClick={() => setShowSignupModal(true)}
+                  onClick={() => openSignup('Sign up to ask follow-up questions and refine your search')}
                   className="px-4 py-2 text-sm text-white/50 hover:text-white/80 transition-colors flex items-center gap-2"
                 >
                   <MessageCircleIcon className="w-4 h-4" />
@@ -671,7 +673,7 @@ export default function CFOSearchCascadePage() {
         )}
       </TimelineContainer>
 
-      <SignUpOverlay isOpen={showSignupModal} onClose={() => setShowSignupModal(false)} subtitle="Export contacts, sync with your CRM, and more" />
+      <SignUpOverlay isOpen={showSignupModal} onClose={() => setShowSignupModal(false)} subtitle={signupContext} />
       <NotifyMePopup isOpen={showNotifyPopup} onClose={() => setShowNotifyPopup(false)} onSubmit={() => setNotifySubmitted(true)} />
     </DemoLayout>
   );
