@@ -55,8 +55,8 @@ export function TimelineStep({
       className={`relative flex gap-4 mb-6 ${animationDelay ? 'animate-fadeIn' : ''}`}
       style={animationDelay ? { animationDelay } : undefined}
     >
-      {/* Timeline node */}
-      <div className="relative z-10 flex-shrink-0">
+      {/* Timeline node - pushed down to align with card header text */}
+      <div className="relative z-10 flex-shrink-0 mt-2">
         {/* Pulsing glow for active state */}
         {isActive && (
           <div className={`absolute inset-0 w-7 h-7 rounded-full ${colors.bg} animate-ping opacity-40`} />
@@ -104,8 +104,8 @@ export const TimelineResultStep = React.forwardRef<HTMLDivElement, TimelineResul
         className={`relative flex gap-4 mb-6 ${animationDelay ? 'animate-fadeIn' : ''}`}
         style={animationDelay ? { animationDelay } : undefined}
       >
-        {/* Timeline node - always green for results */}
-        <div className="relative z-10 flex-shrink-0">
+        {/* Timeline node - always green for results, pushed down to align with card header */}
+        <div className="relative z-10 flex-shrink-0 mt-2">
           <div className="w-7 h-7 rounded-full border-2 border-green-400 bg-green-400 flex items-center justify-center">
             <span className="text-white">{icon}</span>
           </div>
@@ -138,8 +138,8 @@ export function TimelineFinalStep({
       className={`relative flex gap-4 ${animationDelay ? 'animate-fadeIn' : ''}`}
       style={animationDelay ? { animationDelay } : undefined}
     >
-      {/* Timeline node - muted for final step */}
-      <div className="relative z-10 flex-shrink-0">
+      {/* Timeline node - muted for final step, pushed down to align with card header */}
+      <div className="relative z-10 flex-shrink-0 mt-2">
         <div className="w-7 h-7 rounded-full border-2 border-white/30 bg-white/10 flex items-center justify-center">
           <span className="text-white/70">{icon}</span>
         </div>

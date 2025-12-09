@@ -41,7 +41,7 @@ export function PlanningStep({
   sites,
   accentColor = 'cyan',
   onPlanningComplete,
-  planningDuration = 3500,
+  planningDuration = 5000,
 }: PlanningStepProps) {
   const [planningPhase, setPlanningPhase] = useState<PlanningPhase>('thinking');
   const [isExpanded, setIsExpanded] = useState(true);
@@ -54,22 +54,22 @@ export function PlanningStep({
       setRevealedSites(0);
       setIsExpanded(true);
 
-      // Phase 1: Thinking (0-800ms)
+      // Phase 1: Thinking (0-1200ms)
       const thinkingTimer = setTimeout(() => {
         setPlanningPhase('identifying');
-      }, 800);
+      }, 1200);
 
-      // Phase 2: Identifying (800-1600ms)
+      // Phase 2: Identifying (1200-2400ms)
       const identifyingTimer = setTimeout(() => {
         setPlanningPhase('revealing');
-      }, 1600);
+      }, 2400);
 
-      // Phase 3: Reveal sites one by one
+      // Phase 3: Reveal sites one by one (slower reveal)
       const revealTimers: NodeJS.Timeout[] = [];
       sites.forEach((_, index) => {
         const timer = setTimeout(() => {
           setRevealedSites(index + 1);
-        }, 1800 + (index * 200));
+        }, 2700 + (index * 300));
         revealTimers.push(timer);
       });
 
@@ -156,8 +156,8 @@ export function PlanningStep({
               return (
                 <div
                   key={site.id}
-                  className={`px-3 py-1.5 rounded-lg bg-white/[0.06] border border-white/10 text-white/70 text-sm transition-all duration-300 ${
-                    isRevealed ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+                  className={`px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-white/70 text-sm transition-all duration-500 ease-out ${
+                    isRevealed ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'
                   }`}
                 >
                   {site.site}

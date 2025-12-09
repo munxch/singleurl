@@ -87,16 +87,16 @@ export function SearchFiltersWrapper({
 
           {/* Notes input */}
           {showNotesInput && (
-            <div>
+            <div className="max-w-sm">
               <div className="text-white/50 text-xs uppercase tracking-wider mb-2">
                 Additional notes
               </div>
-              <input
-                type="text"
+              <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Any special requests or preferences..."
-                className="w-full px-3 py-2.5 rounded-lg bg-white/[0.06] border border-white/10 text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/20 focus:bg-white/[0.08] transition-all"
+                rows={3}
+                className="w-full px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-white text-sm placeholder-white/30 focus:outline-none focus:border-white/15 focus:bg-white/[0.06] transition-all resize-none"
               />
             </div>
           )}

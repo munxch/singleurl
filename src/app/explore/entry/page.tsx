@@ -131,7 +131,7 @@ const AGENTS: Agent[] = [
     ],
     sites: ['CarGurus', 'AutoTrader', 'Cars.com', 'CarMax', 'FB Marketplace', 'Craigslist', '+ local dealers'],
     estimatedTime: '~35 sec',
-    gradient: 'from-emerald-500/20 to-cyan-500/10',
+    gradient: 'from-emerald-500/10 to-cyan-500/5',
   },
   {
     id: 'table-finder',
@@ -146,7 +146,7 @@ const AGENTS: Agent[] = [
     ],
     sites: ['OpenTable', 'Resy', 'Yelp', 'Google', 'Tock'],
     estimatedTime: '~12 sec',
-    gradient: 'from-orange-500/20 to-red-500/10',
+    gradient: 'from-orange-500/10 to-red-500/5',
   },
   {
     id: 'lead-hunter',
@@ -160,7 +160,7 @@ const AGENTS: Agent[] = [
     ],
     sites: ['LinkedIn', 'Apollo', 'ZoomInfo', 'Company websites'],
     estimatedTime: '~45 sec',
-    gradient: 'from-blue-500/20 to-indigo-500/10',
+    gradient: 'from-blue-500/10 to-indigo-500/5',
   },
   {
     id: 'price-watcher',
@@ -173,7 +173,7 @@ const AGENTS: Agent[] = [
     ],
     sites: ['Amazon', 'Best Buy', 'Target', 'Walmart', 'Costco', 'Apple'],
     estimatedTime: '~20 sec',
-    gradient: 'from-purple-500/20 to-pink-500/10',
+    gradient: 'from-purple-500/10 to-pink-500/5',
   },
 ];
 
@@ -286,7 +286,7 @@ function AgentCard({ agent, onLaunch, isLaunching }: { agent: Agent; onLaunch: (
           {agent.parameters.slice(0, 3).map((param) => (
             <span
               key={param.id}
-              className="px-2.5 py-1 rounded-lg bg-white/[0.08] text-white/70 text-sm"
+              className="px-2.5 py-1 rounded-lg bg-white/[0.04] text-white/70 text-sm"
             >
               {param.value}
             </span>
@@ -294,7 +294,7 @@ function AgentCard({ agent, onLaunch, isLaunching }: { agent: Agent; onLaunch: (
           {agent.parameters.length > 3 && (
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="px-2.5 py-1 rounded-lg bg-white/[0.05] text-white/40 text-sm hover:bg-white/[0.08] hover:text-white/60 transition-colors"
+              className="px-2.5 py-1 rounded-lg bg-white/[0.03] text-white/40 text-sm hover:bg-white/[0.06] hover:text-white/60 transition-colors"
             >
               +{agent.parameters.length - 3} more
             </button>
@@ -310,7 +310,7 @@ function AgentCard({ agent, onLaunch, isLaunching }: { agent: Agent; onLaunch: (
                 <input
                   type="text"
                   defaultValue={param.value}
-                  className="bg-white/[0.08] border border-white/10 rounded-lg px-3 py-1.5 text-white text-sm w-32 text-right focus:outline-none focus:border-white/20"
+                  className="bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-1.5 text-white text-sm w-32 text-right focus:outline-none focus:border-white/15"
                 />
               </div>
             ))}
@@ -444,10 +444,10 @@ function AmbientExploration() {
 
   const getColorClasses = (color: string) => {
     const colors: Record<string, { bg: string; border: string; text: string; glow: string }> = {
-      emerald: { bg: 'bg-emerald-500/20', border: 'border-emerald-500/40', text: 'text-emerald-400', glow: 'shadow-[0_0_40px_rgba(16,185,129,0.4)]' },
-      orange: { bg: 'bg-orange-500/20', border: 'border-orange-500/40', text: 'text-orange-400', glow: 'shadow-[0_0_40px_rgba(249,115,22,0.4)]' },
-      purple: { bg: 'bg-purple-500/20', border: 'border-purple-500/40', text: 'text-purple-400', glow: 'shadow-[0_0_40px_rgba(168,85,247,0.4)]' },
-      blue: { bg: 'bg-blue-500/20', border: 'border-blue-500/40', text: 'text-blue-400', glow: 'shadow-[0_0_40px_rgba(59,130,246,0.4)]' },
+      emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', text: 'text-emerald-400', glow: 'shadow-[0_0_40px_rgba(16,185,129,0.3)]' },
+      orange: { bg: 'bg-orange-500/10', border: 'border-orange-500/30', text: 'text-orange-400', glow: 'shadow-[0_0_40px_rgba(249,115,22,0.3)]' },
+      purple: { bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-400', glow: 'shadow-[0_0_40px_rgba(168,85,247,0.3)]' },
+      blue: { bg: 'bg-blue-500/10', border: 'border-blue-500/30', text: 'text-blue-400', glow: 'shadow-[0_0_40px_rgba(59,130,246,0.3)]' },
     };
     return colors[color] || colors.emerald;
   };
@@ -694,8 +694,8 @@ function AmbientExploration() {
                 key={run.id}
                 className={`
                   flex items-center gap-3 p-3 rounded-xl
-                  bg-white/[0.03] border border-white/[0.05]
-                  hover:bg-white/[0.05] transition-all cursor-pointer
+                  bg-white/[0.02] border border-white/[0.04]
+                  hover:bg-white/[0.04] transition-all cursor-pointer
                   ${run.status === 'working' ? 'animate-pulse' : ''}
                 `}
               >
@@ -839,10 +839,10 @@ function CombinedExploration() {
 
   const getAgentColor = (color: string, variant: 'bg' | 'border' | 'text' | 'glow') => {
     const colors: Record<string, Record<string, string>> = {
-      emerald: { bg: 'bg-emerald-500/20', border: 'border-emerald-500/40', text: 'text-emerald-400', glow: 'shadow-emerald-500/30' },
-      orange: { bg: 'bg-orange-500/20', border: 'border-orange-500/40', text: 'text-orange-400', glow: 'shadow-orange-500/30' },
-      blue: { bg: 'bg-blue-500/20', border: 'border-blue-500/40', text: 'text-blue-400', glow: 'shadow-blue-500/30' },
-      purple: { bg: 'bg-purple-500/20', border: 'border-purple-500/40', text: 'text-purple-400', glow: 'shadow-purple-500/30' },
+      emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/25', text: 'text-emerald-400', glow: 'shadow-emerald-500/20' },
+      orange: { bg: 'bg-orange-500/10', border: 'border-orange-500/25', text: 'text-orange-400', glow: 'shadow-orange-500/20' },
+      blue: { bg: 'bg-blue-500/10', border: 'border-blue-500/25', text: 'text-blue-400', glow: 'shadow-blue-500/20' },
+      purple: { bg: 'bg-purple-500/10', border: 'border-purple-500/25', text: 'text-purple-400', glow: 'shadow-purple-500/20' },
     };
     return colors[color]?.[variant] || '';
   };
@@ -883,7 +883,7 @@ function CombinedExploration() {
                     transition-all duration-300 cursor-pointer
                     ${isSelected
                       ? `${getAgentColor(agent.color, 'bg')} ${getAgentColor(agent.color, 'border')} border-2 scale-110 shadow-lg ${getAgentColor(agent.color, 'glow')}`
-                      : 'bg-white/[0.06] border border-white/10 hover:bg-white/[0.1] hover:border-white/20 hover:scale-105'
+                      : 'bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.06] hover:border-white/15 hover:scale-105'
                     }
                   `}
                   style={{

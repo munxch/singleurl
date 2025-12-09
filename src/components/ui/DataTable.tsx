@@ -220,7 +220,7 @@ export function DataTable<T>({
     >
       <table className="w-full border-collapse">
         <thead className={stickyHeader ? 'sticky top-0 z-10' : ''}>
-          <tr className="bg-white/[0.03] backdrop-blur-md border-b border-white/[0.06]">
+          <tr className="bg-[#0a1628]/90 backdrop-blur-xl border-b border-white/[0.08]">
             {showRowNumbers && (
               <th className="px-3 py-3 text-left text-xs font-medium text-white/40 uppercase tracking-wider w-12">
                 #

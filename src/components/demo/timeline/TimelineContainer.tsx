@@ -12,7 +12,7 @@ interface TimelineContainerProps {
  */
 export function TimelineContainer({ children }: TimelineContainerProps) {
   return (
-    <div className="relative">
+    <div className="relative animate-fadeInSlow">
       {children}
     </div>
   );

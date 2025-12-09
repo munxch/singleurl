@@ -99,12 +99,13 @@ body {
 
 /* Glass effect utilities */
 .glass-card {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
   backdrop-filter: blur(40px) saturate(150%);
   -webkit-backdrop-filter: blur(40px) saturate(150%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .glass-panel {
@@ -138,12 +139,17 @@ body {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInSlow {
+  from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes bubbleIn {
-  0% { opacity: 0; transform: translateY(8px) scale(0.9); }
+  0% { opacity: 0; transform: translateY(8px) scale(0.95); }
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
@@ -156,11 +162,15 @@ body {
 }
 
 .animate-fadeIn {
-  animation: fadeIn 0.3s ease-out forwards;
+  animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fadeInSlow {
+  animation: fadeInSlow 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-bubble {
-  animation: bubbleIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation: bubbleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 @keyframes shimmer {
@@ -193,7 +203,7 @@ body {
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(24px);
   }
   to {
     opacity: 1;
@@ -202,7 +212,7 @@ body {
 }
 
 .animate-slideUp {
-  animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: slideUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes scaleIn {
